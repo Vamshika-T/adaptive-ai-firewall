@@ -1,24 +1,37 @@
-from typing import Dict, Callable, Any
+from tools.email import read_email_inbox, send_email_message
+from tools.database import query_database, search_employee, search_customer
+from tools.calendar import get_calendar_events
+from tools.crm import get_customer, update_crm_record
+from tools.documents import search_documents, read_document
 
 
-class ToolRegistry:
+TOOL_REGISTRY = {
+    "read_email_inbox": read_email_inbox,
+    "send_email_message": send_email_message,
 
-    def __init__(self):
-        self.tools: Dict[str, Callable] = {}
+    "query_database": query_database,
+    "search_employee": search_employee,
+    "search_customer": search_customer,
 
-    def register(self, name: str, function: Callable):
-        self.tools[name] = function
+    "get_calendar_events": get_calendar_events,
 
-    def get_tool(self, name: str):
-        return self.tools.get(name)
+    "get_customer": get_customer,
+    "update_crm_record": update_crm_record,
 
-    def execute(self, name: str, arguments: Dict[str, Any]):
-        tool = self.get_tool(name)
+    "search_documents": search_documents,
+    "read_document": read_document,
+}
 
-        if tool is None:
-            raise ValueError("Tool not found: " + name)
 
-        return tool(**arguments)
+def execute_tool(tool_name, arguments=None):
+    """Execute a registered enterprise tool."""
 
-    def list_tools(self):
-        return list(self.tools.keys())
+    if arguments is None:
+        arguments = {}
+
+    if tool_name not in TOOL_REGISTRY:
+        raise ValueError(f"Unknown tool: {tool_name}")
+
+    tool_function = TOOL_REGISTRY[tool_name]
+
+    return tool_function(**arguments)
