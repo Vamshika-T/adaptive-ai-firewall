@@ -1,40 +1,19 @@
-from tools.registry import ToolRegistry
+from tools.registry import TOOL_REGISTRY, execute_tool
 
 
-def get_employee(name):
-    return "Employee found: " + name
+print("AVAILABLE TOOLS:")
+
+for tool in TOOL_REGISTRY:
+    print(tool)
 
 
-def send_email(to, message):
-    return "Email sent to " + to
+print("\nTESTING search_employee:")
 
-
-registry = ToolRegistry()
-
-registry.register("get_employee", get_employee)
-registry.register("send_email", send_email)
-
-
-print("Available tools:")
-print(registry.list_tools())
-
-print("\nExecuting get_employee:")
-print(
-    registry.execute(
-        "get_employee",
-        {
-            "name": "Alice"
-        }
-    )
+result = execute_tool(
+    "search_employee",
+    {
+        "employee_id": "U001"
+    }
 )
 
-print("\nExecuting send_email:")
-print(
-    registry.execute(
-        "send_email",
-        {
-            "to": "bob@company.com",
-            "message": "Hello"
-        }
-    )
-)
+print(result)

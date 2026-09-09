@@ -1,54 +1,22 @@
-from agent.agent import Agent
-from storage.state import SessionState
-from tools.registry import ToolRegistry
+from agent.agent import DeterministicAgent
 
 
-def get_employee(name):
-    return {
-        "name": name,
-        "department": "Engineering"
-    }
-
-
-registry = ToolRegistry()
-
-registry.register(
-    "get_employee",
-    get_employee
-)
-
-
-agent = Agent(registry)
-
-session = SessionState(
+agent = DeterministicAgent(
     session_id="SESSION001",
     user_id="U001"
 )
 
 
-request = agent.create_request(
-    session_id="SESSION001",
-    user_id="U001",
-    tool="get_employee",
-    arguments={
-        "name": "Alice"
+request, result = agent.execute(
+    "search_employee",
+    {
+        "employee_id": "U001"
     }
 )
 
 
-print("Tool Request:")
+print("TOOL REQUEST:")
 print(request)
 
-print("\nExecuting request:")
-
-result = agent.execute_request(
-    request,
-    session
-)
-
+print("\nRESULT:")
 print(result)
-
-print("\nSession History:")
-
-for action in session.get_history():
-    print(action)

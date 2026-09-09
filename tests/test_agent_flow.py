@@ -1,114 +1,54 @@
-from agent.agent import Agent
-from storage.state import SessionState
-from tools.registry import ToolRegistry
+from agent.agent import DeterministicAgent
 
 
-def read_email_inbox(user_email):
-    return {
-        "tool": "read_email_inbox",
-        "user_email": user_email,
-        "message": "Test email"
-    }
-
-
-def query_database(table):
-    return {
-        "tool": "query_database",
-        "table": table,
-        "result": "Test database result"
-    }
-
-
-def send_email_message(to, message):
-    return {
-        "tool": "send_email_message",
-        "to": to,
-        "message": message
-    }
-
-
-registry = ToolRegistry()
-
-registry.register(
-    "read_email_inbox",
-    read_email_inbox
-)
-
-registry.register(
-    "query_database",
-    query_database
-)
-
-registry.register(
-    "send_email_message",
-    send_email_message
-)
-
-
-agent = Agent(registry)
-
-session = SessionState(
+agent = DeterministicAgent(
     session_id="SESSION001",
     user_id="U001"
 )
 
 
-request1 = agent.create_request(
-    session_id="SESSION001",
-    user_id="U001",
-    tool="read_email_inbox",
-    arguments={
+request1, result1 = agent.execute(
+    "read_email_inbox",
+    {
         "user_email": "alice@company.com"
     }
 )
 
-result1 = agent.execute_request(
-    request1,
-    session
-)
 
-
-request2 = agent.create_request(
-    session_id="SESSION001",
-    user_id="U001",
-    tool="query_database",
-    arguments={
+request2, result2 = agent.execute(
+    "query_database",
+    {
         "table": "payroll"
     }
 )
 
-result2 = agent.execute_request(
-    request2,
-    session
-)
 
-
-request3 = agent.create_request(
-    session_id="SESSION001",
-    user_id="U001",
-    tool="send_email_message",
-    arguments={
-        "to": "external@gmail.com",
-        "message": "Test message"
+request3, result3 = agent.execute(
+    "send_email_message",
+    {
+        "sender": "alice@company.com",
+        "recipient": "external@gmail.com",
+        "subject": "Test",
+        "body": "Test message"
     }
 )
 
-result3 = agent.execute_request(
-    request3,
-    session
-)
 
+print("REQUEST 1:")
+print(request1)
 
-print("RESULT 1:")
+print("\nRESULT 1:")
 print(result1)
+
+print("\nREQUEST 2:")
+print(request2)
 
 print("\nRESULT 2:")
 print(result2)
 
+print("\nREQUEST 3:")
+print(request3)
+
 print("\nRESULT 3:")
 print(result3)
 
-print("\nACTION HISTORY:")
-
-for action in session.get_history():
-    print(action)
