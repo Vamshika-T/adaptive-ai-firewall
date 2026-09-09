@@ -1,0 +1,41 @@
+[
+  {
+    "event_id": "EV001",
+    "date": "2026-09-10",
+    "time": "09:00",
+    "title": "Engineering Team Meeting",
+    "participants": [
+      "alice@company.com",
+      "bob@company.com"
+    ]
+  },
+  {
+    "event_id": "EV002",
+    "date": "2026-09-10",
+    "time": "11:00",
+    "title": "Project Review",
+    "participants": [
+      "alice@company.com",
+      "charlie@company.com"
+    ]
+  },
+  {
+    "event_id": "EV003",
+    "date": "2026-09-10",
+    "time": "15:00",
+    "title": "Client Call",
+    "participants": [
+      "charlie@company.com",
+      "alice@company.com"
+    ]
+  },
+  {
+    "event_id": "EV004",
+    "date": "2026-09-11",
+    "time": "10:00",
+    "title": "HR Policy Discussion",
+    "participants": [
+      "bob@company.com"
+    ]
+  }
+]

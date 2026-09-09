@@ -1,0 +1,23 @@
+[
+  {
+    "employee_id": "U001",
+    "name": "Anjana",
+    "role": "employee",
+    "department": "Engineering",
+    "email": "alice@company.com"
+  },
+  {
+    "employee_id": "U002",
+    "name": "Bob",
+    "role": "hr_manager",
+    "department": "Human Resources",
+    "email": "bob@company.com"
+  },
+  {
+    "employee_id": "U003",
+    "name": "Charlie",
+    "role": "sales_manager",
+    "department": "Sales",
+    "email": "charlie@company.com"
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "customer_id": "C001",
+    "name": "ABC Corporation",
+    "email": "contact@abccorp.example",
+    "status": "active",
+    "account_manager": "U003"
+  },
+  {
+    "customer_id": "C002",
+    "name": "XYZ Technologies",
+    "email": "contact@xyztech.example",
+    "status": "active",
+    "account_manager": "U003"
+  },
+  {
+    "customer_id": "C003",
+    "name": "Global Systems",
+    "email": "contact@globalsystems.example",
+    "status": "inactive",
+    "account_manager": "U003"
+  }
+]

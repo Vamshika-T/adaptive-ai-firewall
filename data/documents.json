@@ -1,0 +1,26 @@
+[
+  {
+    "document_id": "D001",
+    "title": "Employee Handbook",
+    "content": "This document contains general company policies, workplace guidelines, employee responsibilities, and standard procedures.",
+    "sensitivity": "INTERNAL"
+  },
+  {
+    "document_id": "D002",
+    "title": "Project Overview",
+    "content": "This document provides a general overview of the enterprise AI security project, including objectives, milestones, and development activities.",
+    "sensitivity": "INTERNAL"
+  },
+  {
+    "document_id": "D003",
+    "title": "Financial Forecast",
+    "content": "This document contains fictional financial projections, expected revenue estimates, operating costs, and budget information for the upcoming fiscal period.",
+    "sensitivity": "RESTRICTED"
+  },
+  {
+    "document_id": "D004",
+    "title": "Executive Strategy",
+    "content": "This document contains fictional executive-level strategic planning information, including long-term business priorities, expansion plans, and organizational strategy.",
+    "sensitivity": "SENSITIVE"
+  }
+]
