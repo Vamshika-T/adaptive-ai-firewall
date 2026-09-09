@@ -1,48 +1,32 @@
 from models.schemas import ToolRequest
-from storage.state import SessionState
-from tools.registry import ToolRegistry
-import uuid
+from tools.registry import execute_tool
 
 
-class Agent:
+class DeterministicAgent:
+    def __init__(self, session_id, user_id):
+        self.session_id = session_id
+        self.user_id = user_id
+        self.request_counter = 0
 
-    def __init__(self, registry: ToolRegistry):
-        self.registry = registry
+    def create_request(self, tool, arguments=None):
+        self.request_counter += 1
 
-    def create_request(
-        self,
-        session_id: str,
-        user_id: str,
-        tool: str,
-        arguments: dict
-    ):
         request = ToolRequest(
-            request_id=str(uuid.uuid4()),
-            session_id=session_id,
-            user_id=user_id,
+            request_id=f"{self.session_id}-REQ{self.request_counter:03d}",
+            session_id=self.session_id,
+            user_id=self.user_id,
             tool=tool,
-            arguments=arguments
+            arguments=dict(arguments or {})
         )
 
         return request
 
-    def execute_request(
-        self,
-        request: ToolRequest,
-        session: SessionState
-    ):
-        action = {
-            "request_id": request.request_id,
-            "tool": request.tool,
-            "arguments": request.arguments,
-            "timestamp": request.timestamp
-        }
+    def execute(self, tool, arguments=None):
+        request = self.create_request(tool, arguments)
 
-        session.add_action(action)
-
-        result = self.registry.execute(
+        result = execute_tool(
             request.tool,
             request.arguments
         )
 
-        return result
+        return request, result
