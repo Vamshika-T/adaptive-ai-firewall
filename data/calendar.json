@@ -1,41 +1,110 @@
 [
   {
-    "event_id": "EV001",
-    "date": "2026-09-10",
-    "time": "09:00",
-    "title": "Engineering Team Meeting",
-    "participants": [
-      "alice@company.com",
-      "bob@company.com"
-    ]
+    "event_id": "CAL001",
+    "title": "Engineering Standup",
+    "date": "2026-09-14",
+    "organizer": "U010",
+    "participants": ["alice@company.com", "ethan@company.com", "hannah@company.com", "michael@company.com"],
+    "department": "Engineering",
+    "classification": "INTERNAL"
   },
   {
-    "event_id": "EV002",
-    "date": "2026-09-10",
-    "time": "11:00",
-    "title": "Project Review",
-    "participants": [
-      "alice@company.com",
-      "charlie@company.com"
-    ]
+    "event_id": "CAL002",
+    "title": "Engineering Roadmap Review",
+    "date": "2026-09-15",
+    "organizer": "U010",
+    "participants": ["julia@company.com", "alice@company.com", "ethan@company.com"],
+    "department": "Engineering",
+    "classification": "CONFIDENTIAL"
   },
   {
-    "event_id": "EV003",
-    "date": "2026-09-10",
-    "time": "15:00",
-    "title": "Client Call",
-    "participants": [
-      "charlie@company.com",
-      "alice@company.com"
-    ]
+    "event_id": "CAL003",
+    "title": "HR Weekly Meeting",
+    "date": "2026-09-15",
+    "organizer": "U002",
+    "participants": ["bob@company.com", "fiona@company.com", "nina@company.com", "victor@company.com"],
+    "department": "Human Resources",
+    "classification": "INTERNAL"
   },
   {
-    "event_id": "EV004",
-    "date": "2026-09-11",
-    "time": "10:00",
-    "title": "HR Policy Discussion",
-    "participants": [
-      "bob@company.com"
-    ]
+    "event_id": "CAL004",
+    "title": "Employee Performance Review",
+    "date": "2026-09-16",
+    "organizer": "U002",
+    "participants": ["bob@company.com", "alice@company.com"],
+    "department": "Human Resources",
+    "classification": "CONFIDENTIAL"
+  },
+  {
+    "event_id": "CAL005",
+    "title": "Sales Pipeline Review",
+    "date": "2026-09-16",
+    "organizer": "U003",
+    "participants": ["charlie@company.com", "diana@company.com", "ian@company.com", "oliver@company.com"],
+    "department": "Sales",
+    "classification": "INTERNAL"
+  },
+  {
+    "event_id": "CAL006",
+    "title": "Major Customer Negotiation",
+    "date": "2026-09-17",
+    "organizer": "U003",
+    "participants": ["charlie@company.com", "sneha@greenfield.example"],
+    "department": "Sales",
+    "classification": "CONFIDENTIAL"
+  },
+  {
+    "event_id": "CAL007",
+    "title": "Finance Review",
+    "date": "2026-09-17",
+    "organizer": "U011",
+    "participants": ["kevin@company.com", "george@company.com", "laura@company.com", "rachel@company.com"],
+    "department": "Finance",
+    "classification": "CONFIDENTIAL"
+  },
+  {
+    "event_id": "CAL008",
+    "title": "Quarterly Financial Planning",
+    "date": "2026-09-18",
+    "organizer": "U011",
+    "participants": ["kevin@company.com", "wendy@company.com"],
+    "department": "Finance",
+    "classification": "RESTRICTED"
+  },
+  {
+    "event_id": "CAL009",
+    "title": "Executive Strategy Meeting",
+    "date": "2026-09-18",
+    "organizer": "U020",
+    "participants": ["wendy@company.com", "bob@company.com", "kevin@company.com", "charlie@company.com", "julia@company.com"],
+    "department": "Executive",
+    "classification": "RESTRICTED"
+  },
+  {
+    "event_id": "CAL010",
+    "title": "Product Planning Meeting",
+    "date": "2026-09-21",
+    "organizer": "U010",
+    "participants": ["julia@company.com", "alice@company.com", "hannah@company.com"],
+    "department": "Engineering",
+    "classification": "INTERNAL"
+  },
+  {
+    "event_id": "CAL011",
+    "title": "Customer Account Review",
+    "date": "2026-09-21",
+    "organizer": "U003",
+    "participants": ["charlie@company.com", "diana@company.com", "arjun@novatech.example"],
+    "department": "Sales",
+    "classification": "CONFIDENTIAL"
+  },
+  {
+    "event_id": "CAL012",
+    "title": "Security Incident Review",
+    "date": "2026-09-22",
+    "organizer": "U010",
+    "participants": ["julia@company.com", "kevin@company.com", "wendy@company.com"],
+    "department": "Engineering",
+    "classification": "RESTRICTED"
   }
 ]

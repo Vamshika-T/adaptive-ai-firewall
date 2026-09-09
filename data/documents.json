@@ -1,26 +1,134 @@
 [
   {
-    "document_id": "D001",
+    "document_id": "DOC001",
+    "title": "Engineering API Guide",
+    "content": "Internal documentation for company APIs and development practices.",
+    "department": "Engineering",
+    "owner_id": "U010",
+    "classification": "INTERNAL",
+    "allowed_roles": ["employee", "engineering_manager"],
+    "source_type": "internal",
+    "trusted": true
+  },
+  {
+    "document_id": "DOC002",
+    "title": "Software Development Roadmap",
+    "content": "Upcoming engineering projects, milestones, and release schedules.",
+    "department": "Engineering",
+    "owner_id": "U010",
+    "classification": "INTERNAL",
+    "allowed_roles": ["employee", "engineering_manager", "executive"],
+    "source_type": "internal",
+    "trusted": true
+  },
+  {
+    "document_id": "DOC003",
     "title": "Employee Handbook",
-    "content": "This document contains general company policies, workplace guidelines, employee responsibilities, and standard procedures.",
-    "sensitivity": "INTERNAL"
+    "content": "Company policies, workplace guidelines, and employee procedures.",
+    "department": "Human Resources",
+    "owner_id": "U002",
+    "classification": "INTERNAL",
+    "allowed_roles": ["employee", "hr_manager", "executive"],
+    "source_type": "internal",
+    "trusted": true
   },
   {
-    "document_id": "D002",
-    "title": "Project Overview",
-    "content": "This document provides a general overview of the enterprise AI security project, including objectives, milestones, and development activities.",
-    "sensitivity": "INTERNAL"
+    "document_id": "DOC004",
+    "title": "Recruitment Plan",
+    "content": "Hiring requirements and recruitment plans for upcoming quarters.",
+    "department": "Human Resources",
+    "owner_id": "U002",
+    "classification": "CONFIDENTIAL",
+    "allowed_roles": ["hr_manager", "executive"],
+    "source_type": "internal",
+    "trusted": true
   },
   {
-    "document_id": "D003",
-    "title": "Financial Forecast",
-    "content": "This document contains fictional financial projections, expected revenue estimates, operating costs, and budget information for the upcoming fiscal period.",
-    "sensitivity": "RESTRICTED"
+    "document_id": "DOC005",
+    "title": "Customer Sales Strategy",
+    "content": "Sales strategy, pipeline priorities, and customer engagement plans.",
+    "department": "Sales",
+    "owner_id": "U003",
+    "classification": "CONFIDENTIAL",
+    "allowed_roles": ["sales_manager", "executive"],
+    "source_type": "internal",
+    "trusted": true
   },
   {
-    "document_id": "D004",
+    "document_id": "DOC006",
+    "title": "Customer Pricing Agreements",
+    "content": "Negotiated pricing information and customer contract terms.",
+    "department": "Sales",
+    "owner_id": "U003",
+    "classification": "RESTRICTED",
+    "allowed_roles": ["sales_manager", "executive"],
+    "source_type": "internal",
+    "trusted": true
+  },
+  {
+    "document_id": "DOC007",
+    "title": "Quarterly Financial Report",
+    "content": "Company revenue, expenses, forecasts, and financial performance.",
+    "department": "Finance",
+    "owner_id": "U011",
+    "classification": "RESTRICTED",
+    "allowed_roles": ["finance_manager", "executive"],
+    "source_type": "internal",
+    "trusted": true
+  },
+  {
+    "document_id": "DOC008",
+    "title": "Budget Planning Document",
+    "content": "Department budgets and financial allocation plans.",
+    "department": "Finance",
+    "owner_id": "U011",
+    "classification": "RESTRICTED",
+    "allowed_roles": ["finance_manager", "executive"],
+    "source_type": "internal",
+    "trusted": true
+  },
+  {
+    "document_id": "DOC009",
     "title": "Executive Strategy",
-    "content": "This document contains fictional executive-level strategic planning information, including long-term business priorities, expansion plans, and organizational strategy.",
-    "sensitivity": "SENSITIVE"
+    "content": "Confidential corporate strategy and long-term business plans.",
+    "department": "Executive",
+    "owner_id": "U020",
+    "classification": "RESTRICTED",
+    "allowed_roles": ["executive"],
+    "source_type": "internal",
+    "trusted": true
+  },
+  {
+    "document_id": "DOC010",
+    "title": "Public Product Overview",
+    "content": "General information about the company's products and services.",
+    "department": "Sales",
+    "owner_id": "U003",
+    "classification": "PUBLIC",
+    "allowed_roles": ["employee", "sales_manager", "hr_manager", "finance_manager", "engineering_manager", "executive"],
+    "source_type": "internal",
+    "trusted": true
+  },
+  {
+    "document_id": "DOC011",
+    "title": "Incident Response Procedure",
+    "content": "Internal procedures for reporting and responding to security incidents.",
+    "department": "Engineering",
+    "owner_id": "U010",
+    "classification": "CONFIDENTIAL",
+    "allowed_roles": ["engineering_manager", "executive"],
+    "source_type": "internal",
+    "trusted": true
+  },
+  {
+    "document_id": "DOC012",
+    "title": "Vendor Security Assessment",
+    "content": "Security assessment information for external technology vendors.",
+    "department": "Engineering",
+    "owner_id": "U010",
+    "classification": "CONFIDENTIAL",
+    "allowed_roles": ["engineering_manager", "finance_manager", "executive"],
+    "source_type": "internal",
+    "trusted": true
   }
 ]

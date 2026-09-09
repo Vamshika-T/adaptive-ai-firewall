@@ -1,0 +1,162 @@
+[
+  {
+    "employee_id": "U001",
+    "salary": 75000,
+    "bonus": 5000,
+    "bank_account": "FAKE-ACC-001",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U002",
+    "salary": 95000,
+    "bonus": 8000,
+    "bank_account": "FAKE-ACC-002",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U003",
+    "salary": 92000,
+    "bonus": 7500,
+    "bank_account": "FAKE-ACC-003",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U004",
+    "salary": 68000,
+    "bonus": 4000,
+    "bank_account": "FAKE-ACC-004",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U005",
+    "salary": 78000,
+    "bonus": 5500,
+    "bank_account": "FAKE-ACC-005",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U006",
+    "salary": 72000,
+    "bonus": 4500,
+    "bank_account": "FAKE-ACC-006",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U007",
+    "salary": 70000,
+    "bonus": 4000,
+    "bank_account": "FAKE-ACC-007",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U008",
+    "salary": 76000,
+    "bonus": 5000,
+    "bank_account": "FAKE-ACC-008",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U009",
+    "salary": 62000,
+    "bonus": 3000,
+    "bank_account": "FAKE-ACC-009",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U010",
+    "salary": 115000,
+    "bonus": 12000,
+    "bank_account": "FAKE-ACC-010",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U011",
+    "salary": 120000,
+    "bonus": 15000,
+    "bank_account": "FAKE-ACC-011",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U012",
+    "salary": 73000,
+    "bonus": 4500,
+    "bank_account": "FAKE-ACC-012",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U013",
+    "salary": 79000,
+    "bonus": 5500,
+    "bank_account": "FAKE-ACC-013",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U014",
+    "salary": 71000,
+    "bonus": 4000,
+    "bank_account": "FAKE-ACC-014",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U015",
+    "salary": 67000,
+    "bonus": 3500,
+    "bank_account": "FAKE-ACC-015",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U016",
+    "salary": 74000,
+    "bonus": 4500,
+    "bank_account": "FAKE-ACC-016",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U017",
+    "salary": 65000,
+    "bonus": 3000,
+    "bank_account": "FAKE-ACC-017",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U018",
+    "salary": 69000,
+    "bonus": 3500,
+    "bank_account": "FAKE-ACC-018",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U019",
+    "salary": 70000,
+    "bonus": 4000,
+    "bank_account": "FAKE-ACC-019",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  },
+  {
+    "employee_id": "U020",
+    "salary": 180000,
+    "bonus": 30000,
+    "bank_account": "FAKE-ACC-020",
+    "payroll_status": "active",
+    "classification": "RESTRICTED"
+  }
+]

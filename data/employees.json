@@ -1,23 +1,202 @@
 [
   {
     "employee_id": "U001",
-    "name": "Alice",
+    "name": "Alice Johnson",
     "role": "employee",
     "department": "Engineering",
-    "email": "alice@company.com"
+    "email": "alice@company.com",
+    "manager_id": "U010",
+    "employment_type": "full_time",
+    "access_level": "internal"
   },
   {
     "employee_id": "U002",
-    "name": "Bob",
+    "name": "Bob Williams",
     "role": "hr_manager",
     "department": "Human Resources",
-    "email": "bob@company.com"
+    "email": "bob@company.com",
+    "manager_id": "U020",
+    "employment_type": "full_time",
+    "access_level": "confidential"
   },
   {
     "employee_id": "U003",
-    "name": "Charlie",
+    "name": "Charlie Brown",
     "role": "sales_manager",
     "department": "Sales",
-    "email": "charlie@company.com"
+    "email": "charlie@company.com",
+    "manager_id": "U020",
+    "employment_type": "full_time",
+    "access_level": "confidential"
+  },
+  {
+    "employee_id": "U004",
+    "name": "Diana Miller",
+    "role": "employee",
+    "department": "Sales",
+    "email": "diana@company.com",
+    "manager_id": "U003",
+    "employment_type": "full_time",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U005",
+    "name": "Ethan Davis",
+    "role": "employee",
+    "department": "Engineering",
+    "email": "ethan@company.com",
+    "manager_id": "U010",
+    "employment_type": "full_time",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U006",
+    "name": "Fiona Wilson",
+    "role": "employee",
+    "department": "Human Resources",
+    "email": "fiona@company.com",
+    "manager_id": "U002",
+    "employment_type": "full_time",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U007",
+    "name": "George Moore",
+    "role": "employee",
+    "department": "Finance",
+    "email": "george@company.com",
+    "manager_id": "U011",
+    "employment_type": "full_time",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U008",
+    "name": "Hannah Taylor",
+    "role": "employee",
+    "department": "Engineering",
+    "email": "hannah@company.com",
+    "manager_id": "U010",
+    "employment_type": "full_time",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U009",
+    "name": "Ian Anderson",
+    "role": "employee",
+    "department": "Sales",
+    "email": "ian@company.com",
+    "manager_id": "U003",
+    "employment_type": "contractor",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U010",
+    "name": "Julia Thomas",
+    "role": "engineering_manager",
+    "department": "Engineering",
+    "email": "julia@company.com",
+    "manager_id": "U020",
+    "employment_type": "full_time",
+    "access_level": "confidential"
+  },
+  {
+    "employee_id": "U011",
+    "name": "Kevin Jackson",
+    "role": "finance_manager",
+    "department": "Finance",
+    "email": "kevin@company.com",
+    "manager_id": "U020",
+    "employment_type": "full_time",
+    "access_level": "restricted"
+  },
+  {
+    "employee_id": "U012",
+    "name": "Laura White",
+    "role": "employee",
+    "department": "Finance",
+    "email": "laura@company.com",
+    "manager_id": "U011",
+    "employment_type": "full_time",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U013",
+    "name": "Michael Harris",
+    "role": "employee",
+    "department": "Engineering",
+    "email": "michael@company.com",
+    "manager_id": "U010",
+    "employment_type": "full_time",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U014",
+    "name": "Nina Martin",
+    "role": "employee",
+    "department": "Human Resources",
+    "email": "nina@company.com",
+    "manager_id": "U002",
+    "employment_type": "full_time",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U015",
+    "name": "Oliver Thompson",
+    "role": "employee",
+    "department": "Sales",
+    "email": "oliver@company.com",
+    "manager_id": "U003",
+    "employment_type": "full_time",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U016",
+    "name": "Rachel Garcia",
+    "role": "employee",
+    "department": "Finance",
+    "email": "rachel@company.com",
+    "manager_id": "U011",
+    "employment_type": "full_time",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U017",
+    "name": "Samuel Martinez",
+    "role": "employee",
+    "department": "Engineering",
+    "email": "samuel@company.com",
+    "manager_id": "U010",
+    "employment_type": "contractor",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U018",
+    "name": "Tina Robinson",
+    "role": "employee",
+    "department": "Sales",
+    "email": "tina@company.com",
+    "manager_id": "U003",
+    "employment_type": "full_time",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U019",
+    "name": "Victor Clark",
+    "role": "employee",
+    "department": "Human Resources",
+    "email": "victor@company.com",
+    "manager_id": "U002",
+    "employment_type": "full_time",
+    "access_level": "internal"
+  },
+  {
+    "employee_id": "U020",
+    "name": "Wendy Lewis",
+    "role": "executive",
+    "department": "Executive",
+    "email": "wendy@company.com",
+    "manager_id": null,
+    "employment_type": "full_time",
+    "access_level": "restricted"
   }
 ]

@@ -1,23 +1,134 @@
 [
   {
     "customer_id": "C001",
-    "name": "ABC Corporation",
-    "email": "contact@abccorp.example",
+    "name": "Arjun Mehta",
+    "company": "NovaTech Solutions",
+    "email": "arjun@novatech.example",
+    "phone": "+91-9000000001",
+    "account_manager": "U003",
     "status": "active",
-    "account_manager": "U003"
+    "account_value": 250000,
+    "classification": "CONFIDENTIAL"
   },
   {
     "customer_id": "C002",
-    "name": "XYZ Technologies",
-    "email": "contact@xyztech.example",
+    "name": "Priya Shah",
+    "company": "BluePeak Systems",
+    "email": "priya@bluepeak.example",
+    "phone": "+91-9000000002",
+    "account_manager": "U004",
     "status": "active",
-    "account_manager": "U003"
+    "account_value": 180000,
+    "classification": "CONFIDENTIAL"
   },
   {
     "customer_id": "C003",
-    "name": "Global Systems",
-    "email": "contact@globalsystems.example",
+    "name": "Rahul Verma",
+    "company": "Vertex Retail",
+    "email": "rahul@vertex.example",
+    "phone": "+91-9000000003",
+    "account_manager": "U015",
+    "status": "active",
+    "account_value": 320000,
+    "classification": "CONFIDENTIAL"
+  },
+  {
+    "customer_id": "C004",
+    "name": "Sneha Rao",
+    "company": "GreenField Energy",
+    "email": "sneha@greenfield.example",
+    "phone": "+91-9000000004",
+    "account_manager": "U018",
+    "status": "active",
+    "account_value": 410000,
+    "classification": "CONFIDENTIAL"
+  },
+  {
+    "customer_id": "C005",
+    "name": "Daniel Smith",
+    "company": "CloudBridge Inc",
+    "email": "daniel@cloudbridge.example",
+    "phone": "+1-800-000-0005",
+    "account_manager": "U009",
+    "status": "active",
+    "account_value": 150000,
+    "classification": "CONFIDENTIAL"
+  },
+  {
+    "customer_id": "C006",
+    "name": "Meera Iyer",
+    "company": "Apex Healthcare",
+    "email": "meera@apexhealth.example",
+    "phone": "+91-9000000006",
+    "account_manager": "U003",
+    "status": "active",
+    "account_value": 500000,
+    "classification": "RESTRICTED"
+  },
+  {
+    "customer_id": "C007",
+    "name": "Vikram Singh",
+    "company": "Orbit Logistics",
+    "email": "vikram@orbit.example",
+    "phone": "+91-9000000007",
+    "account_manager": "U015",
+    "status": "active",
+    "account_value": 275000,
+    "classification": "CONFIDENTIAL"
+  },
+  {
+    "customer_id": "C008",
+    "name": "Emily Brown",
+    "company": "DataCore Analytics",
+    "email": "emily@datacore.example",
+    "phone": "+1-800-000-0008",
+    "account_manager": "U004",
+    "status": "active",
+    "account_value": 390000,
+    "classification": "CONFIDENTIAL"
+  },
+  {
+    "customer_id": "C009",
+    "name": "Karan Patel",
+    "company": "FinEdge Services",
+    "email": "karan@finedge.example",
+    "phone": "+91-9000000009",
+    "account_manager": "U018",
+    "status": "active",
+    "account_value": 600000,
+    "classification": "RESTRICTED"
+  },
+  {
+    "customer_id": "C010",
+    "name": "Olivia Wilson",
+    "company": "BrightWorks Media",
+    "email": "olivia@brightworks.example",
+    "phone": "+1-800-000-0010",
+    "account_manager": "U009",
     "status": "inactive",
-    "account_manager": "U003"
+    "account_value": 90000,
+    "classification": "CONFIDENTIAL"
+  },
+  {
+    "customer_id": "C011",
+    "name": "Aditya Kumar",
+    "company": "SecureNet Labs",
+    "email": "aditya@securenet.example",
+    "phone": "+91-9000000011",
+    "account_manager": "U003",
+    "status": "active",
+    "account_value": 450000,
+    "classification": "RESTRICTED"
+  },
+  {
+    "customer_id": "C012",
+    "name": "Grace Taylor",
+    "company": "MetroBuild Corp",
+    "email": "grace@metrobuild.example",
+    "phone": "+1-800-000-0012",
+    "account_manager": "U015",
+    "status": "active",
+    "account_value": 210000,
+    "classification": "CONFIDENTIAL"
   }
 ]
