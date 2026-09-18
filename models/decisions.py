@@ -10,14 +10,30 @@ DecisionAction = Literal[
 ]
 
 
+InspectionLevel = Literal[
+    "FAST",
+    "CONTEXTUAL",
+    "DEEP"
+]
+
+
 class SecurityDecision(BaseModel):
     request_id: str
+
     action: DecisionAction
+
     risk_score: float = Field(
         default=0.0,
         ge=0,
         le=100
     )
+
+    inspection_level: InspectionLevel = "FAST"
+
     reasons: List[str] = Field(
+        default_factory=list
+    )
+
+    checks: List[str] = Field(
         default_factory=list
     )
