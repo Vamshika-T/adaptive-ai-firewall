@@ -1,39 +1,59 @@
 def calculate_risk(
     authorization_ok,
     sensitivity_score,
-    provenance_trusted,
-    tainted,
     intent_consistent,
     trajectory_score
 ):
-    """
-    Calculate a transparent runtime risk score.
 
-    Authorization remains a hard gate.
-    Risk scoring is applied to otherwise permitted actions.
-    """
+    # -----------------------------------------------------
+    # Authorization is a hard security boundary.
+    # -----------------------------------------------------
 
     if not authorization_ok:
         return 100
 
     risk = 0
 
+    # -----------------------------------------------------
     # Resource sensitivity
+    # -----------------------------------------------------
+
     risk += sensitivity_score * 0.30
 
-    # Provenance
-    if not provenance_trusted:
-        risk += 20
-
-    # Taint
-    if tainted:
-        risk += 20
-
+    # -----------------------------------------------------
     # Intent mismatch
+    # -----------------------------------------------------
+
     if not intent_consistent:
-        risk += 15
+        risk += 25
 
+    # -----------------------------------------------------
     # Multi-step trajectory
-    risk += trajectory_score * 0.30
+    #
+    # Trajectory receives a higher weight because
+    # dangerous behavior often becomes visible only
+    # when multiple actions are considered together.
+    # -----------------------------------------------------
 
-    return min(round(risk, 2), 100)
+    risk += trajectory_score * 0.75
+
+    return min(
+        round(risk, 2),
+        100
+    )
+
+
+def decide_action(
+    risk_score
+):
+
+    if risk_score >= 70:
+        return "BLOCK"
+
+    if risk_score >= 45:
+        return "ESCALATE"
+
+    if risk_score >= 25:
+        return "MONITOR"
+
+    return "ALLOW"

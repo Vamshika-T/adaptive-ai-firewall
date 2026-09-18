@@ -1,43 +1,26 @@
-READ_TOOLS = {
-    "read_email_inbox",
-    "search_employee",
-    "search_customer",
-    "get_customer",
-    "get_calendar_events",
-    "search_documents",
-    "read_document"
-}
+def analyze_intent(
+    request
+):
 
-
-DATABASE_TOOLS = {
-    "query_database"
-}
-
-
-WRITE_TOOLS = {
-    "send_email_message",
-    "update_crm_record"
-}
-
-
-def analyze_intent(request):
-    """
-    Lightweight intent consistency analysis.
-
-    This is deliberately transparent and deterministic.
-    A future LLM-based semantic component can be integrated
-    without changing the firewall interface.
-    """
-
-    intent = request.intent.lower()
+    intent = (
+        request.intent
+        or ""
+    ).lower()
 
     tool = request.tool
 
+    # No explicit intent means we cannot establish
+    # a mismatch. Do not manufacture one.
     if not intent:
+
         return {
             "consistent": True,
             "reason": "No explicit intent supplied"
         }
+
+    # -----------------------------------------------------
+    # Calendar
+    # -----------------------------------------------------
 
     if any(
         word in intent
@@ -47,16 +30,25 @@ def analyze_intent(request):
             "schedule"
         ]
     ):
+
         if tool == "get_calendar_events":
+
             return {
                 "consistent": True,
-                "reason": "Calendar action matches intent"
+                "reason": "Calendar action matches stated intent"
             }
 
         return {
             "consistent": False,
-            "reason": "Tool does not match calendar intent"
+            "reason": (
+                "Tool does not match the stated "
+                "calendar-related intent"
+            )
         }
+
+    # -----------------------------------------------------
+    # Email
+    # -----------------------------------------------------
 
     if any(
         word in intent
@@ -65,14 +57,28 @@ def analyze_intent(request):
             "mail"
         ]
     ):
+
         if tool in {
             "read_email_inbox",
             "send_email_message"
         }:
+
             return {
                 "consistent": True,
-                "reason": "Email action matches intent"
+                "reason": "Email action matches stated intent"
             }
+
+        return {
+            "consistent": False,
+            "reason": (
+                "Tool does not match the stated "
+                "email-related intent"
+            )
+        }
+
+    # -----------------------------------------------------
+    # Customer
+    # -----------------------------------------------------
 
     if any(
         word in intent
@@ -81,15 +87,31 @@ def analyze_intent(request):
             "client"
         ]
     ):
+
         if tool in {
             "search_customer",
             "get_customer",
             "update_crm_record"
         }:
+
             return {
                 "consistent": True,
-                "reason": "Customer action matches intent"
+                "reason": (
+                    "Customer action matches stated intent"
+                )
             }
+
+        return {
+            "consistent": False,
+            "reason": (
+                "Tool does not match the stated "
+                "customer-related intent"
+            )
+        }
+
+    # -----------------------------------------------------
+    # Document
+    # -----------------------------------------------------
 
     if any(
         word in intent
@@ -98,29 +120,69 @@ def analyze_intent(request):
             "file"
         ]
     ):
+
         if tool in {
             "search_documents",
             "read_document"
         }:
+
             return {
                 "consistent": True,
-                "reason": "Document action matches intent"
+                "reason": (
+                    "Document action matches stated intent"
+                )
             }
+
+        return {
+            "consistent": False,
+            "reason": (
+                "Tool does not match the stated "
+                "document-related intent"
+            )
+        }
+
+    # -----------------------------------------------------
+    # Payroll
+    # -----------------------------------------------------
 
     if any(
         word in intent
         for word in [
             "payroll",
-            "salary"
+            "salary",
+            "compensation"
         ]
     ):
-        if tool == "query_database":
+
+        if (
+            tool == "query_database"
+            and request.arguments.get("table")
+            == "payroll"
+        ):
+
             return {
                 "consistent": True,
-                "reason": "Payroll database action matches intent"
+                "reason": (
+                    "Payroll database action matches "
+                    "stated intent"
+                )
             }
 
+        return {
+            "consistent": False,
+            "reason": (
+                "Tool does not match the stated "
+                "payroll-related intent"
+            )
+        }
+
+    # -----------------------------------------------------
+    # Unknown intent category
+    # -----------------------------------------------------
+
     return {
-        "consistent": False,
-        "reason": "Tool is not clearly consistent with stated intent"
+        "consistent": True,
+        "reason": (
+            "Intent category is not explicitly modeled"
+        )
     }
