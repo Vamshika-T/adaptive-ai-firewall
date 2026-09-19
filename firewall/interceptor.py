@@ -38,6 +38,9 @@ from firewall.risk_engine import (
 
 from firewall.provenance import ProvenanceTracker
 
+from firewall.inspection import (
+    determine_inspection_level
+)
 
 class FirewallInterceptor:
 
@@ -422,19 +425,45 @@ class FirewallInterceptor:
 
         trajectory_result = (
             analyze_trajectory(
-
                 history,
-
                 request,
-
                 resource,
-
                 effective_tainted
             )
         )
 
         checks.append(
             "Action trajectory analysis"
+        )
+
+        # =================================================
+        # PHASE 2D - ADAPTIVE INSPECTION
+        # =================================================
+
+        inspection_result = determine_inspection_level(
+
+            request=request,
+            resource=resource,
+            sensitivity_score=sensitivity_score,
+            tainted=effective_tainted,
+
+            provenance_trusted=(
+                security_context.provenance_trusted
+            ),
+
+            trajectory_score=(
+                trajectory_result["score"]
+            )
+        )
+
+        inspection_level = inspection_result["level"]
+
+        reasons.extend(
+            inspection_result["reasons"]
+        )
+
+        checks.append(
+            "Adaptive inspection routing"
         )
 
         reasons.extend(
@@ -492,13 +521,10 @@ class FirewallInterceptor:
         decision = SecurityDecision(
 
             request_id=request.request_id,
-
             action=action,
-
             risk_score=risk_score,
-
+            inspection_level=inspection_level,
             reasons=reasons,
-
             checks=checks
         )
 
