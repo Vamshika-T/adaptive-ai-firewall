@@ -42,6 +42,8 @@ from firewall.inspection import (
     determine_inspection_level
 )
 
+from firewall.semantic_inspection import analyze_semantic_risk
+
 class FirewallInterceptor:
 
     def __init__(self):
@@ -432,8 +434,29 @@ class FirewallInterceptor:
             )
         )
 
+        checks.append("Action trajectory analysis")
+        reasons.extend(trajectory_result["reasons"])
+
+        # =================================================
+        # PHASE 2D - SEMANTIC / STI INSPECTION
+        # =================================================
+
+        semantic_result = analyze_semantic_risk(
+            request=request,
+            resource=resource,
+            tainted=effective_tainted,
+            provenance_trusted=security_context.provenance_trusted,
+            trajectory_score=trajectory_result["score"]
+        )
+
+        semantic_score = semantic_result["semantic_score"]
+
+        reasons.extend(
+            semantic_result["reasons"]
+        )
+
         checks.append(
-            "Action trajectory analysis"
+            "Semantic/STI inspection"
         )
 
         # =================================================
@@ -450,10 +473,10 @@ class FirewallInterceptor:
             provenance_trusted=(
                 security_context.provenance_trusted
             ),
-
             trajectory_score=(
                 trajectory_result["score"]
-            )
+            ),
+            semantic_score=semantic_score
         )
 
         inspection_level = inspection_result["level"]

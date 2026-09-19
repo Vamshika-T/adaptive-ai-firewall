@@ -4,7 +4,8 @@ def determine_inspection_level(
     sensitivity_score,
     tainted,
     provenance_trusted,
-    trajectory_score=0
+    trajectory_score=0,
+    semantic_score=0
 ):
     """
     Determine the inspection depth required for a request.
@@ -17,15 +18,15 @@ def determine_inspection_level(
         contextual information.
 
     DEEP:
-        Requests involving tainted context, highly
-        sensitive resources, or suspicious trajectories.
+        Requests involving tainted/untrusted context,
+        highly sensitive resources, or suspicious behavior.
     """
 
     reasons = []
 
-    # =====================================================
+    # -------------------------------------------------
     # DEEP INSPECTION
-    # =====================================================
+    # -------------------------------------------------
 
     if tainted:
         reasons.append(
@@ -47,7 +48,11 @@ def determine_inspection_level(
             "Request targets highly sensitive resource"
         )
 
-    # Tainted write operations require deepest inspection
+    if semantic_score >= 60:
+        reasons.append(
+            "High semantic/STI risk detected"
+        )
+
     if (
         tainted
         and request.tool in {
@@ -59,37 +64,30 @@ def determine_inspection_level(
             "Tainted context influences a write action"
         )
 
+    if (
+        tainted
+        or not provenance_trusted
+        or trajectory_score >= 30
+        or sensitivity_score >= 75
+        or semantic_score >= 60
+    ):
         return {
             "level": "DEEP",
             "reasons": reasons
         }
 
-    # Suspicious trajectory
-    if trajectory_score >= 30:
-        return {
-            "level": "DEEP",
-            "reasons": reasons
-        }
-
-    # Highly sensitive resources
-    if sensitivity_score >= 75:
-        return {
-            "level": "DEEP",
-            "reasons": reasons
-        }
-
-    # =====================================================
+    # -------------------------------------------------
     # CONTEXTUAL INSPECTION
-    # =====================================================
+    # -------------------------------------------------
 
     if sensitivity_score >= 50:
         reasons.append(
             "Request targets a confidential resource"
         )
 
-    if sensitivity_score >= 25:
+    if semantic_score >= 30:
         reasons.append(
-            "Request requires contextual sensitivity analysis"
+            "Moderate semantic/STI risk detected"
         )
 
     if request.context_sources:
@@ -103,7 +101,8 @@ def determine_inspection_level(
         )
 
     if (
-        sensitivity_score >= 25
+        sensitivity_score >= 50
+        or semantic_score >= 30
         or request.context_sources
         or trajectory_score > 0
     ):
@@ -112,9 +111,9 @@ def determine_inspection_level(
             "reasons": reasons
         }
 
-    # =====================================================
+    # -------------------------------------------------
     # FAST INSPECTION
-    # =====================================================
+    # -------------------------------------------------
 
     reasons.append(
         "Request has low contextual risk"
