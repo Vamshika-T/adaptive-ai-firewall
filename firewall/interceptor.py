@@ -36,26 +36,104 @@ from firewall.risk_engine import (
     decide_action
 )
 
+from firewall.provenance import ProvenanceTracker
+
 
 class FirewallInterceptor:
 
     def __init__(self):
-
         self.session_history = {}
+        self.provenance_tracker = ProvenanceTracker()
+        self.security_contexts = {}
 
     # -----------------------------------------------------
     # SESSION HISTORY
     # -----------------------------------------------------
 
-    def get_history(
-        self,
-        session_id
-    ):
+    def get_history(self, session_id):
 
         return self.session_history.get(
             session_id,
             []
         )
+
+    # -----------------------------------------------------
+    # SECURITY CONTEXT
+    # -----------------------------------------------------
+
+    def get_security_context(self, request, resource):
+
+        from models.schemas import SecurityContext
+
+        user = get_user(
+            request.user_id
+        )
+
+        if request.session_id not in self.security_contexts:
+
+            self.security_contexts[
+                request.session_id
+            ] = SecurityContext(
+
+                user_id=request.user_id,
+
+                role=(
+                    user["role"]
+                    if user
+                    else ""
+                ),
+
+                department=(
+                    user["department"]
+                    if user
+                    else ""
+                ),
+
+                resource=resource,
+
+                sensitivity=get_sensitivity(
+                    resource
+                ),
+
+                intent=request.intent
+            )
+
+        context = self.security_contexts[
+            request.session_id
+        ]
+
+        # Update current request information
+        context.resource = resource
+
+        context.sensitivity = get_sensitivity(
+            resource
+        )
+
+        context.intent = request.intent
+
+        # -------------------------------------------------
+        # Phase 2B provenance state
+        # -------------------------------------------------
+
+        context.provenance_trusted = (
+            self.provenance_tracker.is_trusted(
+                request.session_id
+            )
+        )
+
+        context.tainted = (
+            self.provenance_tracker.is_tainted(
+                request.session_id
+            )
+        )
+
+        context.provenance_sources = (
+            self.provenance_tracker.get_sources(
+                request.session_id
+            )
+        )
+
+        return context
 
     # -----------------------------------------------------
     # RECORD ACTION
@@ -66,7 +144,8 @@ class FirewallInterceptor:
         request,
         resource,
         decision,
-        tainted=False
+        tainted=False,
+        provenance_trusted=True
     ):
 
         record = ActionRecord(
@@ -87,15 +166,10 @@ class FirewallInterceptor:
 
             tainted=tainted,
 
-            # Provenance belongs to the separate
-            # provenance/taint phase.
-            provenance_trusted=True
+            provenance_trusted=provenance_trusted
         )
 
-        if (
-            request.session_id
-            not in self.session_history
-        ):
+        if request.session_id not in self.session_history:
 
             self.session_history[
                 request.session_id
@@ -111,10 +185,7 @@ class FirewallInterceptor:
     # INSPECTION
     # -----------------------------------------------------
 
-    def inspect(
-        self,
-        request: ToolRequest
-    ):
+    def inspect(self, request: ToolRequest):
 
         reasons = []
 
@@ -134,7 +205,7 @@ class FirewallInterceptor:
 
         if user is None:
 
-            return SecurityDecision(
+            decision = SecurityDecision(
 
                 request_id=request.request_id,
 
@@ -149,8 +220,53 @@ class FirewallInterceptor:
                 checks=checks
             )
 
+            return decision
+
         # =================================================
-        # 2. RBAC
+        # 2. PHASE 2B - PROVENANCE
+        # =================================================
+
+        provenance_result = (
+            self.provenance_tracker.process_context_sources(
+                request.session_id,
+                request.context_sources
+            )
+        )
+
+        # Determine resource for the request
+        resource = get_resource(
+            request.tool,
+            request.arguments
+        )
+
+        # Update security context
+        security_context = (
+            self.get_security_context(
+                request,
+                resource
+            )
+        )
+
+        # -------------------------------------------------
+        # Effective taint
+        #
+        # Taint can come from:
+        # 1. Explicit request taint
+        # 2. Current request provenance
+        # 3. Existing session taint
+        # -------------------------------------------------
+
+        effective_tainted = (
+
+            request.tainted
+
+            or provenance_result["tainted"]
+
+            or security_context.tainted
+        )
+
+        # =================================================
+        # 3. RBAC
         # =================================================
 
         authorized, authorization_reason = (
@@ -188,15 +304,22 @@ class FirewallInterceptor:
             )
 
             self.add_history(
+
                 request,
+
                 resource,
-                decision
+
+                decision,
+
+                effective_tainted,
+
+                security_context.provenance_trusted
             )
 
             return decision
 
         # =================================================
-        # 3. ABAC
+        # 4. ABAC
         # =================================================
 
         abac_allowed, abac_reason = (
@@ -234,15 +357,22 @@ class FirewallInterceptor:
             )
 
             self.add_history(
+
                 request,
+
                 resource,
-                decision
+
+                decision,
+
+                effective_tainted,
+
+                security_context.provenance_trusted
             )
 
             return decision
 
         # =================================================
-        # 4. RESOURCE SENSITIVITY
+        # 5. RESOURCE SENSITIVITY
         # =================================================
 
         resource = get_resource(
@@ -265,7 +395,7 @@ class FirewallInterceptor:
         )
 
         # =================================================
-        # 5. INTENT
+        # 6. INTENT
         # =================================================
 
         intent_result = analyze_intent(
@@ -283,7 +413,7 @@ class FirewallInterceptor:
             )
 
         # =================================================
-        # 6. TRAJECTORY
+        # 7. TRAJECTORY
         # =================================================
 
         history = self.get_history(
@@ -299,7 +429,7 @@ class FirewallInterceptor:
 
                 resource,
 
-                request.tainted
+                effective_tainted
             )
         )
 
@@ -312,7 +442,7 @@ class FirewallInterceptor:
         )
 
         # =================================================
-        # 7. RISK
+        # 8. RISK
         # =================================================
 
         risk_score = calculate_risk(
@@ -329,7 +459,10 @@ class FirewallInterceptor:
                 trajectory_result["score"]
             )
         )
+
+        # Critical trajectory gets a minimum high risk
         if trajectory_result["critical"]:
+
             risk_score = max(
                 risk_score,
                 85
@@ -340,7 +473,7 @@ class FirewallInterceptor:
         )
 
         # =================================================
-        # 8. DECISION
+        # 9. DECISION
         # =================================================
 
         action = decide_action(
@@ -370,7 +503,7 @@ class FirewallInterceptor:
         )
 
         # =================================================
-        # 9. AUDIT HISTORY
+        # 10. AUDIT HISTORY
         # =================================================
 
         self.add_history(
@@ -381,7 +514,9 @@ class FirewallInterceptor:
 
             decision,
 
-            request.tainted
+            effective_tainted,
+
+            security_context.provenance_trusted
         )
 
         return decision
@@ -399,7 +534,10 @@ class FirewallInterceptor:
             request
         )
 
-        # BLOCK and ESCALATE stop execution.
+        # -------------------------------------------------
+        # BLOCK and ESCALATE stop execution
+        # -------------------------------------------------
+
         if decision.action in {
             "BLOCK",
             "ESCALATE"
@@ -422,7 +560,8 @@ class FirewallInterceptor:
         )
 
         # -------------------------------------------------
-        # Filter document search results.
+        # Filter document search results
+        #
         # This prevents an allowed search operation from
         # exposing documents outside the user's ABAC scope.
         # -------------------------------------------------

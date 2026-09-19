@@ -48,7 +48,7 @@ class SecurityContext(BaseModel):
 
     provenance_trusted: bool = True
     tainted: bool = False
-
+    provenance_sources: List[Dict[str, Any]] = Field(default_factory=list)
     intent: str = ""
 
     previous_actions: List[Dict[str, Any]] = Field(
