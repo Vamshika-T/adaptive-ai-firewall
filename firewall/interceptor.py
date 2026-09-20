@@ -42,7 +42,14 @@ from firewall.inspection import (
     determine_inspection_level
 )
 
-from firewall.semantic_inspection import analyze_semantic_risk
+from firewall.semantic_inspection import (
+    analyze_semantic_risk
+)
+
+from firewall.resource_limits import (
+    ResourceGuard
+)
+
 
 class FirewallInterceptor:
 
@@ -50,6 +57,12 @@ class FirewallInterceptor:
         self.session_history = {}
         self.provenance_tracker = ProvenanceTracker()
         self.security_contexts = {}
+
+        # Phase 2D resource/GDoS protection
+        self.resource_guard = ResourceGuard(
+            max_requests_per_session=50,
+            max_deep_inspections=10
+        )
 
     # -----------------------------------------------------
     # SESSION HISTORY
@@ -193,8 +206,53 @@ class FirewallInterceptor:
     def inspect(self, request: ToolRequest):
 
         reasons = []
-
         checks = []
+
+        # =================================================
+        # 0. RESOURCE / GDoS REQUEST BUDGET
+        # =================================================
+
+        budget_ok, budget_reason = (
+            self.resource_guard.check_request_budget(
+                request.session_id
+            )
+        )
+
+        checks.append(
+            "Resource request budget"
+        )
+
+        if not budget_ok:
+
+            decision = SecurityDecision(
+
+                request_id=request.request_id,
+
+                action="BLOCK",
+
+                risk_score=100,
+
+                reasons=[
+                    budget_reason
+                ],
+
+                checks=checks
+            )
+
+            resource = get_resource(
+                request.tool,
+                request.arguments
+            )
+
+            self.add_history(
+                request,
+                resource,
+                decision,
+                request.tainted,
+                False
+            )
+
+            return decision
 
         # =================================================
         # 1. IDENTITY
@@ -262,11 +320,8 @@ class FirewallInterceptor:
         # -------------------------------------------------
 
         effective_tainted = (
-
             request.tainted
-
             or provenance_result["tainted"]
-
             or security_context.tainted
         )
 
@@ -303,21 +358,11 @@ class FirewallInterceptor:
                 checks=checks
             )
 
-            resource = get_resource(
-                request.tool,
-                request.arguments
-            )
-
             self.add_history(
-
                 request,
-
                 resource,
-
                 decision,
-
                 effective_tainted,
-
                 security_context.provenance_trusted
             )
 
@@ -356,21 +401,11 @@ class FirewallInterceptor:
                 checks=checks
             )
 
-            resource = get_resource(
-                request.tool,
-                request.arguments
-            )
-
             self.add_history(
-
                 request,
-
                 resource,
-
                 decision,
-
                 effective_tainted,
-
                 security_context.provenance_trusted
             )
 
@@ -434,22 +469,34 @@ class FirewallInterceptor:
             )
         )
 
-        checks.append("Action trajectory analysis")
-        reasons.extend(trajectory_result["reasons"])
+        checks.append(
+            "Action trajectory analysis"
+        )
+
+        # Add trajectory reasons ONCE
+        reasons.extend(
+            trajectory_result["reasons"]
+        )
 
         # =================================================
-        # PHASE 2D - SEMANTIC / STI INSPECTION
+        # 8. PHASE 2D - SEMANTIC / STI INSPECTION
         # =================================================
 
         semantic_result = analyze_semantic_risk(
             request=request,
             resource=resource,
             tainted=effective_tainted,
-            provenance_trusted=security_context.provenance_trusted,
-            trajectory_score=trajectory_result["score"]
+            provenance_trusted=(
+                security_context.provenance_trusted
+            ),
+            trajectory_score=(
+                trajectory_result["score"]
+            )
         )
 
-        semantic_score = semantic_result["semantic_score"]
+        semantic_score = (
+            semantic_result["semantic_score"]
+        )
 
         reasons.extend(
             semantic_result["reasons"]
@@ -460,26 +507,35 @@ class FirewallInterceptor:
         )
 
         # =================================================
-        # PHASE 2D - ADAPTIVE INSPECTION
+        # 9. PHASE 2D - ADAPTIVE INSPECTION
         # =================================================
 
-        inspection_result = determine_inspection_level(
+        inspection_result = (
+            determine_inspection_level(
 
-            request=request,
-            resource=resource,
-            sensitivity_score=sensitivity_score,
-            tainted=effective_tainted,
+                request=request,
 
-            provenance_trusted=(
-                security_context.provenance_trusted
-            ),
-            trajectory_score=(
-                trajectory_result["score"]
-            ),
-            semantic_score=semantic_score
+                resource=resource,
+
+                sensitivity_score=sensitivity_score,
+
+                tainted=effective_tainted,
+
+                provenance_trusted=(
+                    security_context.provenance_trusted
+                ),
+
+                trajectory_score=(
+                    trajectory_result["score"]
+                ),
+
+                semantic_score=semantic_score
+            )
         )
 
-        inspection_level = inspection_result["level"]
+        inspection_level = (
+            inspection_result["level"]
+        )
 
         reasons.extend(
             inspection_result["reasons"]
@@ -489,12 +545,54 @@ class FirewallInterceptor:
             "Adaptive inspection routing"
         )
 
-        reasons.extend(
-            trajectory_result["reasons"]
-        )
+        # =================================================
+        # 10. DEEP INSPECTION RESOURCE BUDGET
+        # =================================================
+
+        if inspection_level == "DEEP":
+
+            deep_budget_ok, deep_budget_reason = (
+                self.resource_guard.check_deep_inspection_budget(
+                    request.session_id
+                )
+            )
+
+            checks.append(
+                "Deep inspection budget"
+            )
+
+            if not deep_budget_ok:
+
+                decision = SecurityDecision(
+
+                    request_id=request.request_id,
+
+                    action="BLOCK",
+
+                    risk_score=100,
+
+                    inspection_level="DEEP",
+
+                    reasons=[
+                        deep_budget_reason,
+                        "Request blocked because safe deep inspection capacity is exhausted"
+                    ],
+
+                    checks=checks
+                )
+
+                self.add_history(
+                    request,
+                    resource,
+                    decision,
+                    effective_tainted,
+                    security_context.provenance_trusted
+                )
+
+                return decision
 
         # =================================================
-        # 8. RISK
+        # 11. RISK
         # =================================================
 
         risk_score = calculate_risk(
@@ -520,17 +618,56 @@ class FirewallInterceptor:
                 85
             )
 
+        # Semantic risk contributes to contextual risk.
+        # We keep the existing Phase 2C risk engine as the
+        # primary decision mechanism and only raise risk when
+        # semantic inspection identifies substantial risk.
+        if semantic_score >= 60:
+
+            risk_score = max(
+                risk_score,
+                60
+            )
+
         checks.append(
             "Risk aggregation"
         )
 
         # =================================================
-        # 9. DECISION
+        # 12. DECISION
         # =================================================
 
         action = decide_action(
             risk_score
         )
+
+        # Safety-first handling for deep suspicious requests
+        if (
+            inspection_level == "DEEP"
+            and semantic_result["suspicious"]
+            and action == "ALLOW"
+        ):
+
+            if sensitivity_score >= 75:
+                action = "BLOCK"
+                risk_score = max(
+                    risk_score,
+                    85
+                )
+
+            elif sensitivity_score >= 50:
+                action = "ESCALATE"
+                risk_score = max(
+                    risk_score,
+                    60
+                )
+
+            else:
+                action = "MONITOR"
+                risk_score = max(
+                    risk_score,
+                    30
+                )
 
         if action == "ALLOW":
 
@@ -544,15 +681,20 @@ class FirewallInterceptor:
         decision = SecurityDecision(
 
             request_id=request.request_id,
+
             action=action,
+
             risk_score=risk_score,
+
             inspection_level=inspection_level,
+
             reasons=reasons,
+
             checks=checks
         )
 
         # =================================================
-        # 10. AUDIT HISTORY
+        # 13. AUDIT HISTORY
         # =================================================
 
         self.add_history(
@@ -610,9 +752,6 @@ class FirewallInterceptor:
 
         # -------------------------------------------------
         # Filter document search results
-        #
-        # This prevents an allowed search operation from
-        # exposing documents outside the user's ABAC scope.
         # -------------------------------------------------
 
         if request.tool == "search_documents":
