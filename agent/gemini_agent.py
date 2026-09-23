@@ -1,5 +1,4 @@
 import os
-import json
 from google import genai
 from google.genai import types
 
@@ -12,7 +11,7 @@ class GeminiAgent:
         self,
         session_id,
         user_id,
-        model="gemini-3.6-flash"
+        model="gemini-3.8-flash"
     ):
         self.session_id = session_id
         self.user_id = user_id
@@ -98,7 +97,7 @@ class GeminiAgent:
 
         Returns:
             list of dictionaries containing:
-            tool name + arguments
+            function call ID + tool name + arguments
         """
 
         calls = []
@@ -117,6 +116,7 @@ class GeminiAgent:
 
                 calls.append(
                     {
+                        "id": function_call.id,
                         "name": function_call.name,
                         "arguments": dict(
                             function_call.args or {}
@@ -153,3 +153,196 @@ class GeminiAgent:
             requests.append(request)
 
         return requests
+
+
+    def run_secured(
+        self,
+        user_prompt,
+        tools,
+        firewall,
+        system_instruction=None,
+        intent=""
+    ):
+        """
+        Run a complete secured Gemini tool-calling interaction.
+
+        Gemini can request enterprise tools, but every request
+        must pass through FirewallInterceptor before execution.
+
+        Allowed tool results are sent back to Gemini so that
+        Gemini can produce the final natural-language response.
+
+        BLOCK and ESCALATE decisions stop the interaction and
+        prevent the requested tool from executing.
+        """
+
+        # -------------------------------------------------
+        # 1. Create Gemini configuration
+        # -------------------------------------------------
+
+        config = types.GenerateContentConfig(
+            tools=[
+                types.Tool(
+                    function_declarations=tools
+                )
+            ],
+            automatic_function_calling={
+                "disable": True
+            }
+        )
+
+        if system_instruction:
+            config.system_instruction = (
+                system_instruction
+            )
+
+        # -------------------------------------------------
+        # 2. Create initial conversation contents
+        # -------------------------------------------------
+
+        contents = [
+            types.Content(
+                role="user",
+                parts=[
+                    types.Part.from_text(
+                        text=user_prompt
+                    )
+                ]
+            )
+        ]
+
+        tool_results = []
+
+        # -------------------------------------------------
+        # 3. Allow multiple tool-calling rounds
+        # -------------------------------------------------
+
+        max_rounds = 5
+
+        for _ in range(max_rounds):
+
+            # -------------------------------------------------
+            # 3A. Ask Gemini
+            # -------------------------------------------------
+
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=contents,
+                config=config
+            )
+
+            # -------------------------------------------------
+            # 3B. Check for function calls
+            # -------------------------------------------------
+
+            requests = self.function_calls_to_requests(
+                response,
+                intent=intent
+            )
+
+            # -------------------------------------------------
+            # 3C. No function call = final Gemini answer
+            # -------------------------------------------------
+
+            if not requests:
+
+                return {
+                    "status": "COMPLETED",
+                    "response": response,
+                    "text": response.text,
+                    "tool_results": tool_results
+                }
+
+            # -------------------------------------------------
+            # 3D. Preserve Gemini's original model response
+            #
+            # IMPORTANT:
+            # This preserves function-call information and
+            # Gemini 3 thought signatures.
+            # -------------------------------------------------
+
+            model_content = (
+                response.candidates[0].content
+            )
+
+            contents.append(
+                model_content
+            )
+
+            # -------------------------------------------------
+            # 3E. Firewall + tool execution
+            # -------------------------------------------------
+
+            function_response_parts = []
+
+            for request in requests:
+
+                decision, result = firewall.execute(
+                    request
+                )
+
+                tool_results.append(
+                    {
+                        "request": request,
+                        "decision": decision,
+                        "result": result
+                    }
+                )
+
+                # -------------------------------------------------
+                # 3F. BLOCK / ESCALATE
+                # -------------------------------------------------
+
+                if decision.action in {
+                    "BLOCK",
+                    "ESCALATE"
+                }:
+
+                    return {
+                        "status": decision.action,
+                        "response": None,
+                        "text": (
+                            "The requested action was "
+                            "blocked by the security firewall."
+                        ),
+                        "tool_results": tool_results
+                    }
+
+                # -------------------------------------------------
+                # 3G. Convert approved tool result into
+                #     Gemini FunctionResponse
+                # -------------------------------------------------
+
+                function_response_parts.append(
+                    types.Part.from_function_response(
+                        name=request.tool,
+                        response={
+                            "output": result
+                        }
+                    )
+                )
+
+            # -------------------------------------------------
+            # 3H. Send approved tool results back to Gemini
+            # -------------------------------------------------
+
+            contents.append(
+                types.Content(
+                    role="user",
+                    parts=function_response_parts
+                )
+            )
+
+        # -------------------------------------------------
+        # 4. Prevent infinite tool-calling loops
+        # -------------------------------------------------
+
+        return {
+            "status": "MAX_ROUNDS_EXCEEDED",
+            "response": None,
+            "text": (
+                "The agent exceeded the maximum number "
+                "of tool-calling rounds."
+            ),
+            "tool_results": tool_results
+        }
