@@ -1,6 +1,3 @@
-import time
-
-
 class ResourceGuard:
 
     def __init__(
