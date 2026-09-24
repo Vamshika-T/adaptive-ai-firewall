@@ -28,6 +28,8 @@ class ToolRequest(BaseModel):
 
     # Optional metadata describing where the request originated.
     source_type: str = "agent"
+    function_call_id: Optional[str] = None
+
 
     timestamp: datetime = Field(default_factory=datetime.now)
 

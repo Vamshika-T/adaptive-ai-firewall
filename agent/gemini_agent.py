@@ -1,22 +1,16 @@
 import os
+
 from google import genai
-from google.genai import types
+from google.genai import types,errors
 
 from models.schemas import ToolRequest
 
 
 class GeminiAgent:
-
-    def __init__(
-        self,
-        session_id,
-        user_id,
-        model="gemini-3.8-flash"
-    ):
+    def __init__(self, session_id, user_id, model="gemini-3.6-flash"):
         self.session_id = session_id
         self.user_id = user_id
         self.model = model
-
         self.request_counter = 0
 
         api_key = os.getenv("GEMINI_API_KEY")
@@ -26,29 +20,26 @@ class GeminiAgent:
                 "GEMINI_API_KEY environment variable is not set."
             )
 
-        self.client = genai.Client(
-            api_key=api_key
-        )
+        self.client = genai.Client(api_key=api_key)
 
     def create_request(
         self,
         tool,
         arguments=None,
-        intent=""
+        intent="",
+        function_call_id=None
     ):
         self.request_counter += 1
 
         return ToolRequest(
-            request_id=(
-                f"{self.session_id}-REQ"
-                f"{self.request_counter:03d}"
-            ),
+            request_id=f"{self.session_id}-REQ{self.request_counter:03d}",
             session_id=self.session_id,
             user_id=self.user_id,
             tool=tool,
             arguments=dict(arguments or {}),
             intent=intent,
-            source_type="gemini_agent"
+            source_type="gemini_agent",
+            function_call_id=function_call_id
         )
 
     def generate(
@@ -57,13 +48,6 @@ class GeminiAgent:
         tools,
         system_instruction=None
     ):
-        """
-        Send a user request to Gemini and return the response.
-
-        Automatic function execution is disabled because all
-        tool calls must first pass through the AI firewall.
-        """
-
         config = types.GenerateContentConfig(
             tools=[
                 types.Tool(
@@ -76,30 +60,26 @@ class GeminiAgent:
         )
 
         if system_instruction:
-            config.system_instruction = (
-                system_instruction
-            )
+            config.system_instruction = system_instruction
 
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=user_prompt,
-            config=config
-        )
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=user_prompt,
+                config=config
+            )
+            return response
+
+        except errors.APIError as error:
+            print(
+                f"GEMINI API ERROR [{getattr(error, 'code', 'UNKNOWN')}]: "
+                f"{getattr(error, 'message', str(error))}"
+            )
+            return None
 
         return response
 
-    def extract_function_calls(
-        self,
-        response
-    ):
-        """
-        Extract Gemini's requested function calls.
-
-        Returns:
-            list of dictionaries containing:
-            function call ID + tool name + arguments
-        """
-
+    def extract_function_calls(self, response):
         calls = []
 
         for candidate in response.candidates:
@@ -114,15 +94,13 @@ class GeminiAgent:
 
                 function_call = part.function_call
 
-                calls.append(
-                    {
-                        "id": function_call.id,
-                        "name": function_call.name,
-                        "arguments": dict(
-                            function_call.args or {}
-                        )
-                    }
-                )
+                calls.append({
+                    "id": function_call.id,
+                    "name": function_call.name,
+                    "arguments": dict(
+                        function_call.args or {}
+                    )
+                })
 
         return calls
 
@@ -131,14 +109,7 @@ class GeminiAgent:
         response,
         intent=""
     ):
-        """
-        Convert Gemini function calls into the
-        project's existing ToolRequest schema.
-        """
-
-        calls = self.extract_function_calls(
-            response
-        )
+        calls = self.extract_function_calls(response)
 
         requests = []
 
@@ -147,13 +118,13 @@ class GeminiAgent:
             request = self.create_request(
                 tool=call["name"],
                 arguments=call["arguments"],
-                intent=intent
+                intent=intent,
+                function_call_id=call["id"]
             )
 
             requests.append(request)
 
         return requests
-
 
     def run_secured(
         self,
@@ -163,23 +134,6 @@ class GeminiAgent:
         system_instruction=None,
         intent=""
     ):
-        """
-        Run a complete secured Gemini tool-calling interaction.
-
-        Gemini can request enterprise tools, but every request
-        must pass through FirewallInterceptor before execution.
-
-        Allowed tool results are sent back to Gemini so that
-        Gemini can produce the final natural-language response.
-
-        BLOCK and ESCALATE decisions stop the interaction and
-        prevent the requested tool from executing.
-        """
-
-        # -------------------------------------------------
-        # 1. Create Gemini configuration
-        # -------------------------------------------------
-
         config = types.GenerateContentConfig(
             tools=[
                 types.Tool(
@@ -192,13 +146,7 @@ class GeminiAgent:
         )
 
         if system_instruction:
-            config.system_instruction = (
-                system_instruction
-            )
-
-        # -------------------------------------------------
-        # 2. Create initial conversation contents
-        # -------------------------------------------------
+            config.system_instruction = system_instruction
 
         contents = [
             types.Content(
@@ -213,37 +161,30 @@ class GeminiAgent:
 
         tool_results = []
 
-        # -------------------------------------------------
-        # 3. Allow multiple tool-calling rounds
-        # -------------------------------------------------
-
         max_rounds = 5
 
         for _ in range(max_rounds):
 
-            # -------------------------------------------------
-            # 3A. Ask Gemini
-            # -------------------------------------------------
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model,
+                    contents=contents,
+                    config=config
+                )
 
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=contents,
-                config=config
-            )
-
-            # -------------------------------------------------
-            # 3B. Check for function calls
-            # -------------------------------------------------
+            except errors.APIError as error:
+                return self._model_error_result(
+                    error,
+                    tool_results
+                )
 
             requests = self.function_calls_to_requests(
                 response,
                 intent=intent
             )
 
-            # -------------------------------------------------
-            # 3C. No function call = final Gemini answer
-            # -------------------------------------------------
-
+            # Gemini returned a normal text response.
+            # No tool call is required.
             if not requests:
 
                 return {
@@ -253,25 +194,11 @@ class GeminiAgent:
                     "tool_results": tool_results
                 }
 
-            # -------------------------------------------------
-            # 3D. Preserve Gemini's original model response
-            #
-            # IMPORTANT:
-            # This preserves function-call information and
-            # Gemini 3 thought signatures.
-            # -------------------------------------------------
+            # Preserve Gemini's original function-call content,
+            # including the function-call metadata/signature.
+            model_content = response.candidates[0].content
 
-            model_content = (
-                response.candidates[0].content
-            )
-
-            contents.append(
-                model_content
-            )
-
-            # -------------------------------------------------
-            # 3E. Firewall + tool execution
-            # -------------------------------------------------
+            contents.append(model_content)
 
             function_response_parts = []
 
@@ -281,18 +208,15 @@ class GeminiAgent:
                     request
                 )
 
-                tool_results.append(
-                    {
-                        "request": request,
-                        "decision": decision,
-                        "result": result
-                    }
-                )
+                tool_results.append({
+                    "request": request,
+                    "decision": decision,
+                    "result": result
+                })
 
-                # -------------------------------------------------
-                # 3F. BLOCK / ESCALATE
-                # -------------------------------------------------
-
+                # Security enforcement happens BEFORE
+                # the enterprise tool result is returned
+                # to Gemini.
                 if decision.action in {
                     "BLOCK",
                     "ESCALATE"
@@ -302,17 +226,16 @@ class GeminiAgent:
                         "status": decision.action,
                         "response": None,
                         "text": (
-                            "The requested action was "
-                            "blocked by the security firewall."
+                            "The requested action was blocked "
+                            "by the security firewall."
                         ),
                         "tool_results": tool_results
                     }
 
-                # -------------------------------------------------
-                # 3G. Convert approved tool result into
-                #     Gemini FunctionResponse
-                # -------------------------------------------------
-
+                # Return the enterprise tool result to Gemini.
+                # IMPORTANT:
+                # The response ID must match the original
+                # Gemini function-call ID.
                 function_response_parts.append(
                     types.Part.from_function_response(
                         name=request.tool,
@@ -322,20 +245,12 @@ class GeminiAgent:
                     )
                 )
 
-            # -------------------------------------------------
-            # 3H. Send approved tool results back to Gemini
-            # -------------------------------------------------
-
             contents.append(
                 types.Content(
                     role="user",
                     parts=function_response_parts
                 )
             )
-
-        # -------------------------------------------------
-        # 4. Prevent infinite tool-calling loops
-        # -------------------------------------------------
 
         return {
             "status": "MAX_ROUNDS_EXCEEDED",
@@ -345,4 +260,27 @@ class GeminiAgent:
                 "of tool-calling rounds."
             ),
             "tool_results": tool_results
+        }
+    def _model_error_result(self, error, tool_results):
+        code = getattr(error, "code", None)
+        message = getattr(error, "message", str(error))
+
+        if code == 429:
+            status = "MODEL_QUOTA_ERROR"
+            text = (
+                "Gemini API quota was exhausted. "
+                "No further model requests can be made until the quota resets."
+            )
+        elif code is not None and code >= 500:
+            status = "MODEL_SERVICE_ERROR"
+            text = f"Gemini service temporarily unavailable: {message}"
+        else:
+            status = "MODEL_API_ERROR"
+            text = f"Gemini API request failed: {message}"
+
+        return {
+            "status": status,
+            "response": None,
+            "text": text,
+            "tool_results": tool_results,
         }

@@ -74,6 +74,9 @@ def analyze_semantic_risk(
     # -------------------------------------------------
     # 5. Suspicious intent keywords
     # -------------------------------------------------
+        # -------------------------------------------------
+    # 5. Suspicious intent keywords
+    # -------------------------------------------------
     suspicious_keywords = [
         "ignore previous",
         "ignore instructions",
@@ -90,6 +93,27 @@ def analyze_semantic_risk(
         "payroll",
     ]
 
+    instruction_override_patterns = [
+        "ignore previous instructions",
+        "ignore all previous instructions",
+        "disregard previous instructions",
+        "disregard all previous instructions",
+        "forget previous instructions",
+        "override previous instructions",
+    ]
+
+    information_exfiltration_patterns = [
+        "reveal secret",
+        "reveal confidential",
+        "reveal sensitive",
+        "export secret",
+        "export confidential",
+        "export sensitive",
+        "leak secret",
+        "leak confidential",
+        "leak sensitive",
+    ]
+
     matched_keywords = [
         keyword
         for keyword in suspicious_keywords
@@ -102,6 +126,27 @@ def analyze_semantic_risk(
         reasons.append(
             "Suspicious semantic intent detected: "
             + ", ".join(matched_keywords)
+        )
+
+    # -------------------------------------------------
+    # 5A. High-confidence instruction manipulation
+    # -------------------------------------------------
+    has_instruction_override = any(
+        pattern in intent
+        for pattern in instruction_override_patterns
+    )
+
+    has_sensitive_disclosure = any(
+        pattern in intent
+        for pattern in information_exfiltration_patterns
+    )
+
+    if has_instruction_override and has_sensitive_disclosure:
+        score += 40
+
+        reasons.append(
+            "High-confidence instruction manipulation with "
+            "sensitive information disclosure request detected"
         )
 
     # -------------------------------------------------

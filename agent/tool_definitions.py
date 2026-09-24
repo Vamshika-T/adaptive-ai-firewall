@@ -5,21 +5,25 @@ TOOLS = [
     types.FunctionDeclaration(
         name="get_calendar_events",
         description=(
-            "Retrieve calendar events for a specific user "
-            "on a specific date."
+            "Retrieve calendar events or meetings for a specific enterprise "
+            "user on a specific date. Use this tool when the user asks about "
+            "their meetings, appointments, schedule, or calendar events. "
+            "Do NOT use query_database for calendar questions."
         ),
         parameters_json_schema={
             "type": "object",
             "properties": {
                 "user_email": {
                     "type": "string",
-                    "description": "Email address of the user."
+                    "description": (
+                        "Email address of the enterprise user whose calendar "
+                        "should be retrieved."
+                    )
                 },
                 "date": {
                     "type": "string",
                     "description": (
-                        "Date to retrieve calendar events for, "
-                        "in YYYY-MM-DD format."
+                        "Calendar date in YYYY-MM-DD format."
                     )
                 }
             },
@@ -33,14 +37,19 @@ TOOLS = [
     types.FunctionDeclaration(
         name="read_email_inbox",
         description=(
-            "Read the email inbox of a specific enterprise user."
+            "Read the email inbox of a specific enterprise user. Use this "
+            "tool when the user asks to read, inspect, check, or summarize "
+            "their emails or inbox. Do NOT use query_database for email "
+            "questions."
         ),
         parameters_json_schema={
             "type": "object",
             "properties": {
                 "user_email": {
                     "type": "string",
-                    "description": "Email address of the user."
+                    "description": (
+                        "Email address of the enterprise user's inbox."
+                    )
                 }
             },
             "required": [
@@ -52,8 +61,10 @@ TOOLS = [
     types.FunctionDeclaration(
         name="send_email_message",
         description=(
-            "Send an email message from an enterprise user's "
-            "account to a recipient."
+            "Send an email from an enterprise user's account to another "
+            "recipient. Use this tool only when the user explicitly asks "
+            "to send, compose, or forward an email. This is an external "
+            "write action and may be restricted by the security firewall."
         ),
         parameters_json_schema={
             "type": "object",
@@ -61,22 +72,23 @@ TOOLS = [
                 "sender": {
                     "type": "string",
                     "description": (
-                        "Email address of the authenticated sender."
+                        "Email address of the authenticated enterprise "
+                        "user sending the message."
                     )
                 },
                 "recipient": {
                     "type": "string",
                     "description": (
-                        "Email address of the recipient."
+                        "Email address of the intended recipient."
                     )
                 },
                 "subject": {
                     "type": "string",
-                    "description": "Email subject."
+                    "description": "Subject of the email."
                 },
                 "body": {
                     "type": "string",
-                    "description": "Email message body."
+                    "description": "Body/content of the email."
                 }
             },
             "required": [
@@ -91,18 +103,29 @@ TOOLS = [
     types.FunctionDeclaration(
         name="query_database",
         description=(
-            "Query an enterprise database table. "
-            "Access to sensitive tables such as payroll "
-            "is controlled by the security firewall."
+            "Query a structured enterprise database table. Use this tool "
+            "only when the user explicitly asks for information stored in "
+            "a database table such as employees, customers, or payroll. "
+            "Do NOT use this tool for calendar, email, document, or CRM "
+            "requests. The payroll table contains sensitive employee "
+            "compensation information and is subject to strict firewall "
+            "authorization and security checks."
         ),
         parameters_json_schema={
             "type": "object",
             "properties": {
                 "table": {
                     "type": "string",
+                    "enum": [
+                        "employees",
+                        "customers",
+                        "payroll"
+                    ],
                     "description": (
-                        "Database table to query, such as "
-                        "employees, customers, or payroll."
+                        "Enterprise database table to query. "
+                        "employees contains employee records, "
+                        "customers contains customer records, and "
+                        "payroll contains sensitive compensation data."
                     )
                 }
             },
@@ -115,14 +138,18 @@ TOOLS = [
     types.FunctionDeclaration(
         name="search_employee",
         description=(
-            "Search for an employee using the employee ID."
+            "Search for a specific employee using their employee ID. "
+            "Use this when the user asks to find or look up an employee "
+            "record by employee ID."
         ),
         parameters_json_schema={
             "type": "object",
             "properties": {
                 "employee_id": {
                     "type": "string",
-                    "description": "Employee ID to search for."
+                    "description": (
+                        "Employee identifier, for example U001."
+                    )
                 }
             },
             "required": [
@@ -134,14 +161,17 @@ TOOLS = [
     types.FunctionDeclaration(
         name="search_customer",
         description=(
-            "Search for a customer using the customer ID."
+            "Search for a customer using a customer ID. Use this when "
+            "the user asks to find a customer by customer identifier."
         ),
         parameters_json_schema={
             "type": "object",
             "properties": {
                 "customer_id": {
                     "type": "string",
-                    "description": "Customer ID to search for."
+                    "description": (
+                        "Customer identifier, for example C001."
+                    )
                 }
             },
             "required": [
@@ -153,15 +183,18 @@ TOOLS = [
     types.FunctionDeclaration(
         name="get_customer",
         description=(
-            "Retrieve a customer CRM record using the "
-            "customer ID."
+            "Retrieve a specific customer CRM record using a customer ID. "
+            "Use this when the user asks for details about a customer's "
+            "CRM record."
         ),
         parameters_json_schema={
             "type": "object",
             "properties": {
                 "customer_id": {
                     "type": "string",
-                    "description": "Customer ID to retrieve."
+                    "description": (
+                        "Customer identifier, for example C001."
+                    )
                 }
             },
             "required": [
@@ -173,27 +206,30 @@ TOOLS = [
     types.FunctionDeclaration(
         name="update_crm_record",
         description=(
-            "Update a field in a customer CRM record. "
-            "This is a write operation and is subject to "
-            "firewall authorization and security checks."
+            "Update a field in a customer's CRM record. Use this only when "
+            "the user explicitly requests a CRM record modification. "
+            "This is a write operation and is subject to firewall "
+            "authorization, context, and risk checks."
         ),
         parameters_json_schema={
             "type": "object",
             "properties": {
                 "customer_id": {
                     "type": "string",
-                    "description": "Customer ID to update."
+                    "description": (
+                        "Customer identifier, for example C001."
+                    )
                 },
                 "field": {
                     "type": "string",
                     "description": (
-                        "Name of the customer field to update."
+                        "CRM field that should be modified."
                     )
                 },
                 "value": {
                     "type": "string",
                     "description": (
-                        "New value for the specified field."
+                        "New value for the CRM field."
                     )
                 }
             },
@@ -208,8 +244,9 @@ TOOLS = [
     types.FunctionDeclaration(
         name="search_documents",
         description=(
-            "Search enterprise documents by a keyword "
-            "in the document title or content."
+            "Search enterprise documents by keyword in document titles "
+            "or content. Use this when the user asks to find, search, "
+            "or locate enterprise documents."
         ),
         parameters_json_schema={
             "type": "object",
@@ -217,8 +254,8 @@ TOOLS = [
                 "keyword": {
                     "type": "string",
                     "description": (
-                        "Keyword to search for in document "
-                        "titles or content."
+                        "Keyword or phrase to search for in enterprise "
+                        "documents."
                     )
                 }
             },
@@ -231,15 +268,18 @@ TOOLS = [
     types.FunctionDeclaration(
         name="read_document",
         description=(
-            "Read an enterprise document using its "
-            "document ID."
+            "Read the contents of a specific enterprise document using "
+            "its document ID. Use this only when the user asks to read "
+            "or retrieve a known document."
         ),
         parameters_json_schema={
             "type": "object",
             "properties": {
                 "document_id": {
                     "type": "string",
-                    "description": "Document ID to retrieve."
+                    "description": (
+                        "Enterprise document identifier, for example DOC001."
+                    )
                 }
             },
             "required": [
