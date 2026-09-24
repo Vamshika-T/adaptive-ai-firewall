@@ -7,7 +7,7 @@ from models.schemas import ToolRequest
 
 
 class GeminiAgent:
-    def __init__(self, session_id, user_id, model="gemini-3.6-flash"):
+    def __init__(self, session_id, user_id, model="gemini-3.5-flash-lite"):
         self.session_id = session_id
         self.user_id = user_id
         self.model = model
@@ -148,6 +148,10 @@ class GeminiAgent:
         if system_instruction:
             config.system_instruction = system_instruction
 
+        # Use the actual user request as the intent when
+        # no separate intent is explicitly provided.
+        effective_intent = intent.strip() if intent else user_prompt
+
         contents = [
             types.Content(
                 role="user",
@@ -180,7 +184,7 @@ class GeminiAgent:
 
             requests = self.function_calls_to_requests(
                 response,
-                intent=intent
+                intent=effective_intent
             )
 
             # Gemini returned a normal text response.
@@ -233,9 +237,6 @@ class GeminiAgent:
                     }
 
                 # Return the enterprise tool result to Gemini.
-                # IMPORTANT:
-                # The response ID must match the original
-                # Gemini function-call ID.
                 function_response_parts.append(
                     types.Part.from_function_response(
                         name=request.tool,

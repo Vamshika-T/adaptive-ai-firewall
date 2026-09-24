@@ -121,12 +121,20 @@ overview_page = st.Page(
     default=True,
 )
 
+chat_page = st.Page(
+    "pages/chat.py",
+    title="AI Agent Console",
+    icon=":material/smart_toy:",
+)
+
 pg = st.navigation(
     {
         "Security Console": [
             overview_page,
+            chat_page,
         ],
     },
+
     position="sidebar",
     expanded=True,
 )
