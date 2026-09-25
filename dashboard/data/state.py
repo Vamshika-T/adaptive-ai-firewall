@@ -5,11 +5,7 @@ import streamlit as st
 
 
 def initialize_dashboard_state():
-    """Initialize dashboard-level session state.
-
-    This stores UI/session information only.
-    Security decisions remain owned by the firewall.
-    """
+    """Initialize persistent dashboard state for the current browser session."""
 
     if "dashboard_session_id" not in st.session_state:
         st.session_state.dashboard_session_id = (
@@ -36,24 +32,25 @@ def initialize_dashboard_state():
 
 
 def add_security_event(event):
-    """Add an event produced by the real firewall integration.
-
-    A1 only establishes the storage interface.
-    The actual firewall integration will be added later.
-    """
+    """Store an event produced by the real firewall integration."""
 
     event_with_timestamp = dict(event)
 
-    if "timestamp" not in event_with_timestamp:
+    if (
+        "timestamp" not in event_with_timestamp
+        or event_with_timestamp["timestamp"] is None
+    ):
         event_with_timestamp["timestamp"] = datetime.now().isoformat(
             timespec="seconds"
         )
 
-    st.session_state.security_events.append(event_with_timestamp)
+    st.session_state.security_events.append(
+        event_with_timestamp
+    )
 
 
 def clear_dashboard_session():
-    """Reset dashboard-only state."""
+    """Reset dashboard state and recreate runtime objects on demand."""
 
     st.session_state.security_events = []
     st.session_state.last_request = None
@@ -61,8 +58,28 @@ def clear_dashboard_session():
     st.session_state.last_result = None
     st.session_state.chat_messages = []
 
+    st.session_state.pop(
+        "dashboard_firewall",
+        None,
+    )
+
+    st.session_state.pop(
+        "dashboard_gemini_agent",
+        None,
+    )
+
+    st.session_state.pop(
+        "dashboard_evaluation_records",
+        None,
+    )
+
+    st.session_state.pop(
+        "dashboard_evaluation_metrics",
+        None,
+    )
+
 
 def get_security_events():
-    """Return the current dashboard security-event list."""
+    """Return all security events recorded in this dashboard session."""
 
     return st.session_state.security_events

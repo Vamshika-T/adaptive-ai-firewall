@@ -7,9 +7,9 @@ from dashboard.data.state import (
 )
 
 
-# ------------------------------------------------------------------
-# Page configuration
-# ------------------------------------------------------------------
+# ============================================================
+# PAGE CONFIGURATION
+# ============================================================
 
 st.set_page_config(
     page_title="Adaptive AI Firewall",
@@ -19,25 +19,29 @@ st.set_page_config(
 )
 
 
-# ------------------------------------------------------------------
-# Initialize dashboard
-# ------------------------------------------------------------------
+# ============================================================
+# INITIALIZATION
+# ============================================================
 
 initialize_dashboard_state()
 apply_dashboard_styles()
 
 
-# ------------------------------------------------------------------
-# Sidebar
-# ------------------------------------------------------------------
+# ============================================================
+# SIDEBAR
+# ============================================================
 
 with st.sidebar:
 
     st.markdown(
-        '<div style="font-size:1.15rem;font-weight:700;color:#f5f7fa;'
-        'margin-bottom:0.2rem;">🛡️ Adaptive AI Firewall</div>'
-        '<div style="font-size:0.78rem;color:#7f8b97;margin-bottom:1rem;">'
-        'Enterprise Agent Security Console</div>',
+        '<div style="font-size:1.15rem;font-weight:700;'
+        'color:#f5f7fa;margin-bottom:0.2rem;">'
+        '🛡️ Adaptive AI Firewall'
+        '</div>'
+        '<div style="font-size:0.78rem;color:#7f8b97;'
+        'margin-bottom:1rem;">'
+        'Enterprise Agent Security Console'
+        '</div>',
         unsafe_allow_html=True,
     )
 
@@ -62,8 +66,9 @@ with st.sidebar:
         ["Demo", "Gemini"],
         index=0,
         help=(
-            "Demo mode will use controlled requests. "
-            "Gemini mode will be connected in a later phase."
+            "Demo mode runs controlled ToolRequests through "
+            "the real firewall. Gemini mode sends natural-language "
+            "requests through Gemini and the same firewall."
         ),
     )
 
@@ -75,7 +80,9 @@ with st.sidebar:
         "Reset Dashboard Session",
         use_container_width=True,
     ):
+
         clear_dashboard_session()
+
         st.rerun()
 
     st.markdown("---")
@@ -86,9 +93,9 @@ with st.sidebar:
     )
 
 
-# ------------------------------------------------------------------
-# Shared application header
-# ------------------------------------------------------------------
+# ============================================================
+# HEADER
+# ============================================================
 
 header_html = (
     '<div class="security-header">'
@@ -110,9 +117,9 @@ st.markdown(
 )
 
 
-# ------------------------------------------------------------------
-# Navigation
-# ------------------------------------------------------------------
+# ============================================================
+# PAGES
+# ============================================================
 
 overview_page = st.Page(
     "pages/overview.py",
@@ -127,24 +134,50 @@ chat_page = st.Page(
     icon=":material/smart_toy:",
 )
 
+request_inspector_page = st.Page(
+    "pages/request_inspector.py",
+    title="Request Inspector",
+    icon=":material/search:",
+)
+
+evaluation_page = st.Page(
+    "pages/evaluation.py",
+    title="Evaluation",
+    icon=":material/analytics:",
+)
+
+architecture_page = st.Page(
+    "pages/architecture.py",
+    title="Architecture",
+    icon=":material/account_tree:",
+)
+
+
+# ============================================================
+# NAVIGATION
+# ============================================================
+
 pg = st.navigation(
     {
         "Security Console": [
             overview_page,
             chat_page,
+            request_inspector_page,
+            evaluation_page,
+            architecture_page,
         ],
     },
-
     position="sidebar",
     expanded=True,
 )
 
+
 pg.run()
 
 
-# ------------------------------------------------------------------
-# Footer
-# ------------------------------------------------------------------
+# ============================================================
+# FOOTER
+# ============================================================
 
 st.markdown(
     '<div class="dashboard-footer">'

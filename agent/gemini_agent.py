@@ -132,7 +132,8 @@ class GeminiAgent:
         tools,
         firewall,
         system_instruction=None,
-        intent=""
+        intent="",
+        conversation_history=None
     ):
         config = types.GenerateContentConfig(
             tools=[
@@ -152,16 +153,55 @@ class GeminiAgent:
         # no separate intent is explicitly provided.
         effective_intent = intent.strip() if intent else user_prompt
 
-        contents = [
-            types.Content(
-                role="user",
-                parts=[
-                    types.Part.from_text(
-                        text=user_prompt
-                    )
-                ]
+        contents = []
+
+# Preserve previous dashboard conversation as Gemini context.
+#
+# Important:
+# The firewall intent remains the CURRENT user request only.
+# Previous messages are context for Gemini, not a replacement
+# for the current ToolRequest intent.
+
+        for message in conversation_history or []:
+
+            role = (
+                "model"
+                if message.get("role") == "assistant"
+                else "user"
             )
-        ]
+
+            text = str(
+                message.get(
+                "content",
+                ""
+                )
+            )
+
+            if not text.strip():
+                continue
+
+            contents.append(
+                types.Content(
+                    role=role,
+                    parts=[
+                        types.Part.from_text(
+                            text=text
+                        )
+                    ]
+                )
+            )
+
+
+            contents.append(
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_text(
+                        text=user_prompt
+                        )
+                    ]
+                )
+            )
 
         tool_results = []
 

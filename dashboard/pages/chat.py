@@ -5,6 +5,10 @@ from agent.tool_definitions import TOOLS
 from firewall.interceptor import FirewallInterceptor
 
 from dashboard.data.state import add_security_event
+from dashboard.data.runtime import (
+    get_dashboard_firewall,
+    get_dashboard_gemini_agent,
+)
 
 
 # ------------------------------------------------------------------
@@ -1585,6 +1589,9 @@ elif st.session_state.dashboard_mode == "Gemini":
         )
 
         if prompt:
+            conversation_history = list(
+                st.session_state.chat_messages
+            )
 
             st.session_state.chat_messages.append(
                 {
@@ -1605,33 +1612,23 @@ elif st.session_state.dashboard_mode == "Gemini":
                     "Gemini is processing your request..."
                 ):
 
+                    agent = get_dashboard_gemini_agent()
+
+                    firewall = get_dashboard_firewall()
+
                     try:
 
-                        agent = GeminiAgent(
-
-                            session_id=(
-                                st.session_state
-                                .dashboard_session_id
-                            ),
-
-                            user_id="U001",
-                        )
-
-                        firewall = FirewallInterceptor()
-
                         result = agent.run_secured(
-
                             user_prompt=prompt,
-
                             tools=TOOLS,
-
                             firewall=firewall,
-
                             system_instruction=(
                                 SYSTEM_INSTRUCTION
                             ),
-
                             intent="",
+                            conversation_history=(
+                                conversation_history
+                            ),
                         )
 
                         for item in result.get(
@@ -1671,14 +1668,11 @@ elif st.session_state.dashboard_mode == "Gemini":
                             )
 
                             st.session_state.chat_messages.append(
-                                {
-                                    "role":
-                                        "assistant",
-
-                                    "content":
-                                        response_text,
-                                }
-                            )
+                            {
+                                "role": "assistant",
+                                "content": response_text,
+                            }
+                        )
 
                         else:
 
@@ -1693,11 +1687,8 @@ elif st.session_state.dashboard_mode == "Gemini":
 
                             st.session_state.chat_messages.append(
                                 {
-                                    "role":
-                                        "assistant",
-
-                                    "content":
-                                        fallback_message,
+                                    "role": "assistant",
+                                    "content": fallback_message,
                                 }
                             )
 
@@ -1722,19 +1713,17 @@ elif st.session_state.dashboard_mode == "Gemini":
 
                         st.session_state.chat_messages.append(
                             {
-                                "role":
-                                    "assistant",
-
-                                "content":
-                                    (
-                                        f"Gemini request failed: "
-                                        f"{type(exc).__name__}: {exc}"
-                                    ),
+                                "role": "assistant",
+                                "content": (
+                                    f"Gemini request failed: "
+                                    f"{type(exc).__name__}: {exc}"
+                                ),
                             }
                         )
 
-    with security_col:
 
-        display_security_monitor(
-            st.session_state.security_events
-        )
+        with security_col:
+
+            display_security_monitor(
+                st.session_state.security_events
+            )
