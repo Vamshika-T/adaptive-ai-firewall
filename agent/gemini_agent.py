@@ -28,7 +28,9 @@ class GeminiAgent:
         tool,
         arguments=None,
         intent="",
-        function_call_id=None
+        function_call_id=None,
+        tainted=False,
+        context_sources=None
     ):
         self.request_counter += 1
 
@@ -39,6 +41,8 @@ class GeminiAgent:
             tool=tool,
             arguments=dict(arguments or {}),
             intent=intent,
+            context_sources=list(context_sources or []),
+            tainted=tainted,
             source_type="gemini_agent",
             function_call_id=function_call_id
         )
@@ -112,7 +116,9 @@ class GeminiAgent:
     def function_calls_to_requests(
         self,
         response,
-        intent=""
+        intent="",
+        tainted=False,
+        context_sources=None
     ):
         calls = self.extract_function_calls(response)
 
@@ -124,7 +130,9 @@ class GeminiAgent:
                 tool=call["name"],
                 arguments=call["arguments"],
                 intent=intent,
-                function_call_id=call["id"]
+                function_call_id=call["id"],
+                tainted=tainted,
+                context_sources=context_sources
             )
 
             requests.append(request)
@@ -140,6 +148,43 @@ class GeminiAgent:
         """
 
         text = user_prompt.lower()
+
+        # ---------------------------------------------------------
+        # MULTI-STEP DATABASE -> EXTERNAL EMAIL
+        # ---------------------------------------------------------
+
+        database_terms = {
+            "database",
+            "database table",
+            "table",
+            "payroll",
+            "employee table",
+            "customer table"
+        }
+
+        send_terms = {
+            "send",
+            "forward",
+            "compose"
+        }
+
+        if (
+            any(term in text for term in database_terms)
+            and any(term in text for term in send_terms)
+            and any(
+                term in text
+                for term in {
+                    "email",
+                    "mail",
+                    "external",
+                    "recipient"
+                }
+            )
+        ):
+            # Force the first Gemini round to retrieve the data.
+            # After the approved database result is returned,
+            # the normal AUTO mode can select the email tool.
+            return ["query_database"]
 
         # ---------------------------------------------------------
         # CALENDAR
@@ -309,7 +354,9 @@ class GeminiAgent:
         firewall,
         system_instruction=None,
         intent="",
-        conversation_history=None
+        conversation_history=None,
+        tainted=False,
+        context_sources=None
     ):
         # ---------------------------------------------------------
         # AUTHENTICATED ENTERPRISE IDENTITY
@@ -462,8 +509,8 @@ arguments.
 
 The application security firewall is the final authority.
 
-Every requested enterprise action must pass through
-the firewall.
+Every requested enterprise action must pass through the
+firewall.
 
 The firewall may:
 - ALLOW
@@ -479,7 +526,6 @@ the authenticated user is different.
 Never claim an action is authorized before the firewall
 evaluates it.
 """
-
 
         if system_instruction:
             effective_system_instruction = (
@@ -557,8 +603,6 @@ evaluates it.
         for _ in range(max_rounds):
 
             # -----------------------------------------------------
-            # IMPORTANT:
-            #
             # FIRST ROUND:
             #   If we know the semantic category, constrain Gemini
             #   to the appropriate function.
@@ -566,9 +610,6 @@ evaluates it.
             # FOLLOW-UP ROUNDS:
             #   Return to AUTO so Gemini can provide a normal answer
             #   after receiving the tool result.
-            #
-            # This prevents repeated calls such as:
-            # calendar -> calendar -> calendar -> ...
             # -----------------------------------------------------
 
             config_kwargs = {
@@ -619,7 +660,9 @@ evaluates it.
 
             requests = self.function_calls_to_requests(
                 response,
-                intent=effective_intent
+                intent=effective_intent,
+                tainted=tainted,
+                context_sources=context_sources
             )
 
             # -----------------------------------------------------

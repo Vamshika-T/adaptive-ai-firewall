@@ -19,6 +19,38 @@ def analyze_intent(
         }
 
     # -----------------------------------------------------
+    # Multi-step database -> email
+    # -----------------------------------------------------
+
+    if (
+        tool == "query_database"
+        and any(
+            word in intent
+            for word in [
+                "database",
+                "employees database",
+                "employee information"
+            ]
+        )
+        and any(
+            word in intent
+            for word in [
+                "email",
+                "send",
+                "external recipient"
+            ]
+        )
+    ):
+
+        return {
+            "consistent": True,
+            "reason": (
+                "Database action matches the first step "
+                "of the stated multi-step intent"
+            )
+        }
+
+    # -----------------------------------------------------
     # Calendar
     # -----------------------------------------------------
 

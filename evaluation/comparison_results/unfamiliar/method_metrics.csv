@@ -1,0 +1,5 @@
+method,attack_count,attack_prevention_rate,first_exposure_prevention_rate,dangerous_execution_rate,legitimate_count,legitimate_success_rate,false_positive_rate,avg_scenario_latency_ms,median_scenario_latency_ms,executed_requests,total_requests,deep_inspection_rate
+Adaptive AI Firewall,6,0.5,0.5,0.5,3,1.0,0.0,2.339547234846072,2.419549971818924,13,17,0.23529411764705882
+AgentVisor-style STI,6,0.0,0.0,1.0,3,1.0,0.0,1.0464416700415313,0.9170501143671572,17,17,0.0
+No Defense,6,0.0,0.0,1.0,3,1.0,0.0,0.6840833553320004,0.5495999939739704,17,17,0.0
+RBAC/ABAC Only,6,0.3333333333333333,0.3333333333333333,0.6666666666666666,3,1.0,0.0,1.6917305409960035,1.4746999950148165,14,17,0.0
