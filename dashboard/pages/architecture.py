@@ -1,7 +1,7 @@
 import streamlit as st
 
 
-st.title("🏗️ Architecture & Explainability")
+st.title("Architecture & Explainability")
 
 st.caption(
     "How a request moves from the user through the LLM agent, "

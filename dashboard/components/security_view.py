@@ -19,19 +19,19 @@ def display_security_event(
     if action == "BLOCK":
 
         st.error(
-            f"⛔ BLOCKED — {tool}"
+            f"BLOCKED — {tool}"
         )
 
     elif action == "ESCALATE":
 
         st.warning(
-            f"⚠️ ESCALATED — {tool}"
+            f"ESCALATED — {tool}"
         )
 
     elif action == "MONITOR":
 
         st.warning(
-            f"👁️ MONITOR — {tool}"
+            f"MONITOR — {tool}"
         )
 
     elif action == "ALLOW":
@@ -121,7 +121,7 @@ def display_security_monitor(
     """Display recent firewall events."""
 
     st.markdown(
-        "### 🛡️ Security Monitor"
+        "Security Monitor"
     )
 
     if not events:

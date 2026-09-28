@@ -13,7 +13,7 @@ from dashboard.data.state import (
 
 st.set_page_config(
     page_title="Adaptive AI Firewall",
-    page_icon="🛡️",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -36,7 +36,7 @@ with st.sidebar:
     st.markdown(
         '<div style="font-size:1.15rem;font-weight:700;'
         'color:#f5f7fa;margin-bottom:0.2rem;">'
-        '🛡️ Adaptive AI Firewall'
+        'Adaptive AI Firewall'
         '</div>'
         '<div style="font-size:0.78rem;color:#7f8b97;'
         'margin-bottom:1rem;">'
@@ -100,7 +100,7 @@ with st.sidebar:
 header_html = (
     '<div class="security-header">'
     '<div class="security-title">'
-    '🛡️ Adaptive Context-Aware AI Firewall'
+    'Adaptive Context-Aware AI Firewall'
     '</div>'
     '<div class="security-subtitle">'
     'Enterprise LLM Agent Security Console'

@@ -356,7 +356,7 @@ else:
 
                 "Average Scenario Latency (ms)":
                     float(
-                        row["avg_latency_ms"]
+                        row["avg_scenario_latency_ms"]
                     ),
 
                 "Median Scenario Latency (ms)":

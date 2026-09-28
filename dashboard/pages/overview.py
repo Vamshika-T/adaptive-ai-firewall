@@ -119,7 +119,7 @@ with status_col1:
     st.markdown(
         """
         <div class="info-box">
-            <strong>🛡️ Firewall</strong><br>
+            <strong>Firewall</strong><br>
             Frozen security implementation is ready.
         </div>
         """,
@@ -130,7 +130,7 @@ with status_col2:
     st.markdown(
         """
         <div class="info-box">
-            <strong>🤖 Gemini Agent</strong><br>
+            <strong>Gemini Agent</strong><br>
             Connected through the existing secured
             GeminiAgent interface.
         </div>
@@ -142,7 +142,7 @@ with status_col3:
     st.markdown(
         """
         <div class="info-box">
-            <strong>📊 Monitoring</strong><br>
+            <strong>Monitoring</strong><br>
             Live firewall security events are displayed
             in this dashboard.
         </div>
@@ -229,25 +229,25 @@ if events:
     if action == "BLOCK":
 
         st.error(
-            f"⛔ BLOCKED — {latest_event.get('tool', 'Unknown tool')}"
+            f"BLOCKED — {latest_event.get('tool', 'Unknown tool')}"
         )
 
     elif action == "ESCALATE":
 
         st.warning(
-            f"⚠️ ESCALATED — {latest_event.get('tool', 'Unknown tool')}"
+            f"ESCALATED — {latest_event.get('tool', 'Unknown tool')}"
         )
 
     elif action == "MONITOR":
 
         st.warning(
-            f"👁️ MONITOR — {latest_event.get('tool', 'Unknown tool')}"
+            f"MONITOR — {latest_event.get('tool', 'Unknown tool')}"
         )
 
     elif action == "ALLOW":
 
         st.success(
-            f"✓ ALLOWED — {latest_event.get('tool', 'Unknown tool')}"
+            f"ALLOWED — {latest_event.get('tool', 'Unknown tool')}"
         )
 
     else:

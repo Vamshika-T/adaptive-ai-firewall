@@ -154,25 +154,25 @@ def display_security_event(event):
     if action == "BLOCK":
 
         st.error(
-            f"⛔ BLOCKED — {event['tool']}"
+            f"BLOCKED — {event['tool']}"
         )
 
     elif action == "ESCALATE":
 
         st.warning(
-            f"⚠️ ESCALATED — {event['tool']}"
+            f"ESCALATED — {event['tool']}"
         )
 
     elif action == "MONITOR":
 
         st.warning(
-            f"👁️ MONITOR — {event['tool']}"
+            f"MONITOR — {event['tool']}"
         )
 
     elif action == "ALLOW":
 
         st.success(
-            f"✓ ALLOWED — {event['tool']}"
+            f"ALLOWED — {event['tool']}"
         )
 
     else:
@@ -271,7 +271,7 @@ def display_security_monitor(events):
     """
 
     st.markdown(
-        "### 🛡️ Security Monitor"
+        "### Security Monitor"
     )
 
     if not events:
@@ -1023,7 +1023,7 @@ def run_a9_scenario(
 # ------------------------------------------------------------------
 
 st.title(
-    "🤖 AI Agent Console"
+    "AI Agent Console"
 )
 
 st.caption(
@@ -1043,7 +1043,7 @@ if st.session_state.dashboard_mode == "Demo":
     # ==============================================================
 
     st.info(
-        "🎬 Demo Mode — controlled ToolRequests are sent "
+        "Demo Mode — controlled ToolRequests are sent "
         "through the real Adaptive AI Firewall."
     )
 
@@ -1055,7 +1055,7 @@ if st.session_state.dashboard_mode == "Demo":
     with chat_col:
 
         st.markdown(
-            "### 💬 Demo Agent"
+            "### Demo Agent"
         )
 
         st.caption(
@@ -1098,7 +1098,7 @@ if st.session_state.dashboard_mode == "Demo":
             )
 
         if st.button(
-            "▶ Run Scenario",
+            "Run Scenario",
             use_container_width=True,
         ):
 
@@ -1158,7 +1158,7 @@ if st.session_state.dashboard_mode == "Demo":
                         )
 
                         st.markdown(
-                            "### 🔗 Trajectory Execution"
+                            "### Trajectory Execution"
                         )
 
                         st.write(
@@ -1179,7 +1179,7 @@ if st.session_state.dashboard_mode == "Demo":
                         ):
 
                             st.error(
-                                "⛔ External email action "
+                                "External email action "
                                 "was blocked by the firewall."
                             )
 
@@ -1189,7 +1189,7 @@ if st.session_state.dashboard_mode == "Demo":
                         ):
 
                             st.warning(
-                                "⚠️ External email action "
+                                "External email action "
                                 "was escalated by the firewall."
                             )
 
@@ -1258,7 +1258,7 @@ if st.session_state.dashboard_mode == "Demo":
                         )
 
                         st.markdown(
-                            "### 🔄 Request Budget Test"
+                            "### Request Budget Test"
                         )
 
                         st.write(
@@ -1275,14 +1275,14 @@ if st.session_state.dashboard_mode == "Demo":
                         if final_action == "BLOCK":
 
                             st.error(
-                                "⛔ Request budget was exhausted "
+                                "Request budget was exhausted "
                                 "and the firewall blocked the request."
                             )
 
                         elif final_action == "ESCALATE":
 
                             st.warning(
-                                "⚠️ Final request was escalated "
+                                "Final request was escalated "
                                 "by the firewall."
                             )
 
@@ -1379,7 +1379,7 @@ if st.session_state.dashboard_mode == "Demo":
                         )
 
                         st.markdown(
-                            "### 🔬 Deep Inspection Budget Test"
+                            "### Deep Inspection Budget Test"
                         )
 
                         st.write(
@@ -1396,7 +1396,7 @@ if st.session_state.dashboard_mode == "Demo":
                         if final_action == "BLOCK":
 
                             st.error(
-                                "⛔ Deep inspection budget was "
+                                "Deep inspection budget was "
                                 "exhausted and the firewall blocked "
                                 "the request."
                             )
@@ -1404,7 +1404,7 @@ if st.session_state.dashboard_mode == "Demo":
                         elif final_action == "ESCALATE":
 
                             st.warning(
-                                "⚠️ Final request was escalated "
+                                "Final request was escalated "
                                 "by the firewall."
                             )
 
@@ -1569,7 +1569,7 @@ elif st.session_state.dashboard_mode == "Gemini":
     with chat_col:
 
         st.markdown(
-            "### 💬 AI Assistant"
+            "### AI Assistant"
         )
 
         for message in (

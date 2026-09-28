@@ -3,7 +3,7 @@ import streamlit as st
 from dashboard.data.state import get_security_events
 
 
-st.title("🔎 Request Inspector")
+st.title("Request Inspector")
 
 st.caption(
     "Inspect the latest ToolRequest and the firewall decision "
@@ -56,25 +56,25 @@ else:
     if action == "BLOCK":
 
         st.error(
-            f"⛔ BLOCK — {request.tool}"
+            f"BLOCK — {request.tool}"
         )
 
     elif action == "ESCALATE":
 
         st.warning(
-            f"⚠️ ESCALATE — {request.tool}"
+            f"ESCALATE — {request.tool}"
         )
 
     elif action == "MONITOR":
 
         st.warning(
-            f"👁️ MONITOR — {request.tool}"
+            f"MONITOR — {request.tool}"
         )
 
     else:
 
         st.success(
-            f"✓ {action} — {request.tool}"
+            f"{action} — {request.tool}"
         )
 
 
