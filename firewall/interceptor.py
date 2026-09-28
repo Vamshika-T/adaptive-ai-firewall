@@ -64,9 +64,9 @@ class FirewallInterceptor:
             max_deep_inspections=10
         )
 
-    # -----------------------------------------------------
+    
     # SESSION HISTORY
-    # -----------------------------------------------------
+    
 
     def get_history(self, session_id):
 
@@ -75,9 +75,9 @@ class FirewallInterceptor:
             []
         )
 
-    # -----------------------------------------------------
+    
     # SECURITY CONTEXT
-    # -----------------------------------------------------
+    
 
     def get_security_context(self, request, resource):
 
@@ -129,9 +129,9 @@ class FirewallInterceptor:
 
         context.intent = request.intent
 
-        # -------------------------------------------------
+        
         # Phase 2B provenance state
-        # -------------------------------------------------
+        
 
         context.provenance_trusted = (
             self.provenance_tracker.is_trusted(
@@ -153,9 +153,9 @@ class FirewallInterceptor:
 
         return context
 
-    # -----------------------------------------------------
+    
     # RECORD ACTION
-    # -----------------------------------------------------
+    
 
     def add_history(
         self,
@@ -199,18 +199,18 @@ class FirewallInterceptor:
             record.model_dump()
         )
 
-    # -----------------------------------------------------
+    
     # INSPECTION
-    # -----------------------------------------------------
+    
 
     def inspect(self, request: ToolRequest):
 
         reasons = []
         checks = []
 
-        # =================================================
+        
         # 0. RESOURCE / GDoS REQUEST BUDGET
-        # =================================================
+        
 
         budget_ok, budget_reason = (
             self.resource_guard.check_request_budget(
@@ -254,9 +254,9 @@ class FirewallInterceptor:
 
             return decision
 
-        # =================================================
+        
         # 1. IDENTITY
-        # =================================================
+        
 
         user = get_user(
             request.user_id
@@ -285,9 +285,9 @@ class FirewallInterceptor:
 
             return decision
 
-        # =================================================
+        
         # 2. PHASE 2B - PROVENANCE
-        # =================================================
+        
 
         provenance_result = (
             self.provenance_tracker.process_context_sources(
@@ -310,14 +310,14 @@ class FirewallInterceptor:
             )
         )
 
-        # -------------------------------------------------
+        
         # Effective taint
         #
         # Taint can come from:
         # 1. Explicit request taint
         # 2. Current request provenance
         # 3. Existing session taint
-        # -------------------------------------------------
+        
 
         effective_tainted = (
             request.tainted
@@ -325,9 +325,9 @@ class FirewallInterceptor:
             or security_context.tainted
         )
 
-        # =================================================
+        
         # 3. RBAC
-        # =================================================
+        
 
         authorized, authorization_reason = (
             check_rbac(
@@ -368,9 +368,9 @@ class FirewallInterceptor:
 
             return decision
 
-        # =================================================
+        
         # 4. ABAC
-        # =================================================
+        
 
         abac_allowed, abac_reason = (
             check_abac(
@@ -411,9 +411,9 @@ class FirewallInterceptor:
 
             return decision
 
-        # =================================================
+        
         # 5. RESOURCE SENSITIVITY
-        # =================================================
+        
 
         resource = get_resource(
             request.tool,
@@ -434,9 +434,9 @@ class FirewallInterceptor:
             "Resource sensitivity"
         )
 
-        # =================================================
+        
         # 6. INTENT
-        # =================================================
+        
 
         intent_result = analyze_intent(
             request
@@ -452,9 +452,9 @@ class FirewallInterceptor:
                 intent_result["reason"]
             )
 
-        # =================================================
+        
         # 7. TRAJECTORY
-        # =================================================
+        
 
         history = self.get_history(
             request.session_id
@@ -478,9 +478,9 @@ class FirewallInterceptor:
             trajectory_result["reasons"]
         )
 
-        # =================================================
+        
         # 8. PHASE 2D - SEMANTIC / STI INSPECTION
-        # =================================================
+        
 
         semantic_result = analyze_semantic_risk(
             request=request,
@@ -506,9 +506,9 @@ class FirewallInterceptor:
             "Semantic/STI inspection"
         )
 
-        # =================================================
+        
         # 9. PHASE 2D - ADAPTIVE INSPECTION
-        # =================================================
+        
 
         inspection_result = (
             determine_inspection_level(
@@ -545,9 +545,9 @@ class FirewallInterceptor:
             "Adaptive inspection routing"
         )
 
-        # =================================================
+        
         # 10. DEEP INSPECTION RESOURCE BUDGET
-        # =================================================
+        
 
         if inspection_level == "DEEP":
 
@@ -591,9 +591,9 @@ class FirewallInterceptor:
 
                 return decision
 
-        # =================================================
+        
         # 11. RISK
-        # =================================================
+        
 
         risk_score = calculate_risk(
 
@@ -633,9 +633,9 @@ class FirewallInterceptor:
             "Risk aggregation"
         )
 
-        # =================================================
+        
         # 12. DECISION
-        # =================================================
+        
 
         action = decide_action(
             risk_score
@@ -693,9 +693,9 @@ class FirewallInterceptor:
             checks=checks
         )
 
-        # =================================================
+        
         # 13. AUDIT HISTORY
-        # =================================================
+        
 
         self.add_history(
 
@@ -712,9 +712,9 @@ class FirewallInterceptor:
 
         return decision
 
-    # -----------------------------------------------------
+    
     # EXECUTION
-    # -----------------------------------------------------
+    
 
     def execute(
         self,
@@ -725,9 +725,9 @@ class FirewallInterceptor:
             request
         )
 
-        # -------------------------------------------------
+        
         # BLOCK and ESCALATE stop execution
-        # -------------------------------------------------
+        
 
         if decision.action in {
             "BLOCK",
@@ -739,9 +739,9 @@ class FirewallInterceptor:
                 None
             )
 
-        # -------------------------------------------------
+        
         # Execute enterprise tool
-        # -------------------------------------------------
+        
 
         result = execute_tool(
 
@@ -750,9 +750,9 @@ class FirewallInterceptor:
             request.arguments
         )
 
-        # -------------------------------------------------
+        
         # Filter document search results
-        # -------------------------------------------------
+        
 
         if request.tool == "search_documents":
 

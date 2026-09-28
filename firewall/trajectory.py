@@ -22,10 +22,10 @@ def analyze_trajectory(
 
     current_tool = request.tool
 
-    # -----------------------------------------------------
+    
     # Pattern 1:
     # Sensitive database access after tainted context
-    # -----------------------------------------------------
+    
 
     if (
         current_tool == "query_database"
@@ -44,10 +44,10 @@ def analyze_trajectory(
             "by tainted context"
         )
 
-    # -----------------------------------------------------
+    
     # Pattern 2:
     # Email → sensitive database
-    # -----------------------------------------------------
+    
 
     if (
         "read_email_inbox" in previous_tools
@@ -66,12 +66,12 @@ def analyze_trajectory(
             "an earlier email-reading action"
         )
 
-    # -----------------------------------------------------
+    
     # Pattern 3:
     # Database → external email
     #
     # This is a critical exfiltration trajectory.
-    # -----------------------------------------------------
+    
 
     if (
         "query_database" in previous_tools
@@ -102,10 +102,10 @@ def analyze_trajectory(
                 "Potential sensitive-data exfiltration trajectory"
             )
 
-    # -----------------------------------------------------
+    
     # Pattern 4:
     # Sensitive data → write action
-    # -----------------------------------------------------
+    
 
     if (
         "query_database" in previous_tools
@@ -121,10 +121,10 @@ def analyze_trajectory(
             "Write action follows sensitive database access"
         )
 
-    # -----------------------------------------------------
+    
     # Pattern 5:
     # Tainted context → write action
-    # -----------------------------------------------------
+    
 
     if (
         tainted
@@ -140,9 +140,9 @@ def analyze_trajectory(
             "Tainted context is influencing a write action"
         )
 
-    # -----------------------------------------------------
+    
     # Cap
-    # -----------------------------------------------------
+    
 
     score = min(
         score,

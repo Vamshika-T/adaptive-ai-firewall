@@ -8,9 +8,9 @@ DATA_DIR = (
 )
 
 
-# ---------------------------------------------------------
+
 # DATA LOADERS
-# ---------------------------------------------------------
+
 
 def load_json(filename):
 
@@ -38,9 +38,9 @@ def get_user(user_id):
     return None
 
 
-# ---------------------------------------------------------
+
 # EMPLOYEE ACCESS
-# ---------------------------------------------------------
+
 
 def check_employee_access(
     user,
@@ -126,9 +126,9 @@ def check_employee_access(
     )
 
 
-# ---------------------------------------------------------
+
 # CUSTOMER ACCESS
-# ---------------------------------------------------------
+
 
 def check_customer_access(
     user,
@@ -211,9 +211,9 @@ def check_customer_access(
     )
 
 
-# ---------------------------------------------------------
+
 # DOCUMENT ACCESS
-# ---------------------------------------------------------
+
 
 def get_document(document_id):
 
@@ -280,9 +280,9 @@ def check_document_access(
     )
 
 
-# ---------------------------------------------------------
+
 # EMAIL ACCESS
-# ---------------------------------------------------------
+
 
 def check_email_access(
     user,
@@ -348,9 +348,9 @@ def check_email_access(
     )
 
 
-# ---------------------------------------------------------
+
 # CALENDAR ACCESS
-# ---------------------------------------------------------
+
 
 def check_calendar_access(
     user,
@@ -381,9 +381,9 @@ def check_calendar_access(
     )
 
 
-# ---------------------------------------------------------
+
 # DATABASE ACCESS
-# ---------------------------------------------------------
+
 
 def check_database_access(user, table):
     role = user["role"]
@@ -414,9 +414,9 @@ def check_database_access(user, table):
     return False, f"Database table '{table}' is outside the access policy"
 
 
-# ---------------------------------------------------------
+
 # MAIN ABAC CHECK
-# ---------------------------------------------------------
+
 
 def check_abac(
     user_id,
@@ -437,9 +437,9 @@ def check_abac(
             "Unknown user identity"
         )
 
-    # -------------------------
+    
     # Email
-    # -------------------------
+    
 
     if tool_name in {
         "read_email_inbox",
@@ -452,9 +452,9 @@ def check_abac(
             arguments
         )
 
-    # -------------------------
+    
     # Calendar
-    # -------------------------
+    
 
     if tool_name == "get_calendar_events":
 
@@ -463,9 +463,9 @@ def check_abac(
             arguments
         )
 
-    # -------------------------
+    
     # Employee
-    # -------------------------
+    
 
     if tool_name == "search_employee":
 
@@ -474,9 +474,9 @@ def check_abac(
             arguments.get("employee_id")
         )
 
-    # -------------------------
+    
     # Database
-    # -------------------------
+    
 
     if tool_name == "query_database":
 
@@ -485,9 +485,9 @@ def check_abac(
             arguments.get("table")
         )
 
-    # -------------------------
+    
     # Customer
-    # -------------------------
+    
 
     if tool_name in {
         "search_customer",
@@ -499,9 +499,9 @@ def check_abac(
             arguments.get("customer_id")
         )
 
-    # -------------------------
+    
     # CRM update
-    # -------------------------
+    
 
     if tool_name == "update_crm_record":
 
@@ -510,9 +510,9 @@ def check_abac(
             arguments.get("customer_id")
         )
 
-    # -------------------------
+    
     # Document read
-    # -------------------------
+    
 
     if tool_name == "read_document":
 
@@ -521,9 +521,9 @@ def check_abac(
             arguments.get("document_id")
         )
 
-    # -------------------------
+    
     # Document search
-    # -------------------------
+    
 
     if tool_name == "search_documents":
 
@@ -541,9 +541,9 @@ def check_abac(
     )
 
 
-# ---------------------------------------------------------
+
 # FILTER SEARCH RESULTS
-# ---------------------------------------------------------
+
 
 def filter_document_results(
     user_id,

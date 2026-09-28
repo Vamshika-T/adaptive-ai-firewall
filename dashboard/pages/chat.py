@@ -11,9 +11,7 @@ from dashboard.data.runtime import (
 )
 
 
-# ------------------------------------------------------------------
 # Configuration
-# ------------------------------------------------------------------
 
 SYSTEM_INSTRUCTION = (
     "You are an enterprise assistant protected by a security firewall. "
@@ -56,9 +54,9 @@ SYSTEM_INSTRUCTION = (
 )
 
 
-# ------------------------------------------------------------------
+
 # Helpers
-# ------------------------------------------------------------------
+
 
 def get_event_value(obj, attribute, default=None):
     """Safely read an attribute from a firewall object."""
@@ -309,15 +307,15 @@ def display_security_monitor(events):
             )
 
 
-# ------------------------------------------------------------------
+
 # Demo scenarios
-# ------------------------------------------------------------------
+
 
 DEMO_SCENARIOS = {
 
-    # --------------------------------------------------------------
+    
     # Legitimate Calendar
-    # --------------------------------------------------------------
+    
 
     "Legitimate — Calendar": {
 
@@ -336,9 +334,9 @@ DEMO_SCENARIOS = {
         },
     },
 
-    # --------------------------------------------------------------
+    
     # Legitimate Employee Search
-    # --------------------------------------------------------------
+    
 
     "Legitimate — Employee Search": {
 
@@ -354,9 +352,9 @@ DEMO_SCENARIOS = {
         },
     },
 
-    # --------------------------------------------------------------
+    
     # Unauthorized Full Employee Database
-    # --------------------------------------------------------------
+    
 
     "Attack — Full Employee Database": {
 
@@ -372,9 +370,9 @@ DEMO_SCENARIOS = {
         },
     },
 
-    # --------------------------------------------------------------
+    
     # Unauthorized Calendar
-    # --------------------------------------------------------------
+    
 
     "Attack — Unauthorized Calendar": {
 
@@ -393,9 +391,9 @@ DEMO_SCENARIOS = {
         },
     },
 
-    # --------------------------------------------------------------
+    
     # Unauthorized CRM Update
-    # --------------------------------------------------------------
+    
 
     "Attack — Unauthorized CRM Update": {
 
@@ -416,9 +414,9 @@ DEMO_SCENARIOS = {
         },
     },
 
-    # --------------------------------------------------------------
+    
     # Unauthorized Documents
-    # --------------------------------------------------------------
+    
 
     "Attack — Unauthorized Documents": {
 
@@ -434,9 +432,9 @@ DEMO_SCENARIOS = {
         },
     },
 
-    # --------------------------------------------------------------
+    
     # A3 - Database -> External Email
-    # --------------------------------------------------------------
+    
 
     "Attack — Database to External Email": {
 
@@ -488,9 +486,9 @@ DEMO_SCENARIOS = {
             "Send employee information to an external recipient.",
     },
 
-    # --------------------------------------------------------------
+    
     # A4 - Tainted External Write
-    # --------------------------------------------------------------
+    
 
     "Attack — Tainted External Write": {
 
@@ -531,9 +529,9 @@ DEMO_SCENARIOS = {
             "U001",
     },
 
-    # --------------------------------------------------------------
+    
     # A7 - Tainted CRM Write
-    # --------------------------------------------------------------
+    
 
     "Attack — Tainted CRM Write": {
 
@@ -569,9 +567,9 @@ DEMO_SCENARIOS = {
             "U003",
     },
 
-    # --------------------------------------------------------------
+    
     # A8 - Request Budget Exhaustion
-    # --------------------------------------------------------------
+    
 
     "Attack — Request Budget Exhaustion": {
 
@@ -603,9 +601,9 @@ DEMO_SCENARIOS = {
             51,
     },
 
-    # --------------------------------------------------------------
+    
     # A9 - Deep Inspection Exhaustion
-    # --------------------------------------------------------------
+    
 
     "Attack — Deep Inspection Exhaustion": {
 
@@ -670,9 +668,9 @@ DEMO_SCENARIOS = {
 }
 
 
-# ------------------------------------------------------------------
+
 # Normal single-request demo execution
-# ------------------------------------------------------------------
+
 
 def run_demo_scenario(
     scenario,
@@ -727,9 +725,9 @@ def run_demo_scenario(
     )
 
 
-# ------------------------------------------------------------------
+
 # A3 trajectory execution
-# ------------------------------------------------------------------
+
 
 def run_a3_scenario(
     scenario,
@@ -756,9 +754,9 @@ def run_a3_scenario(
         st.session_state.dashboard_session_id
     )
 
-    # --------------------------------------------------------------
+    
     # Step 1 — Database access
-    # --------------------------------------------------------------
+    
 
     prelude_request = ToolRequest(
 
@@ -799,9 +797,9 @@ def run_a3_scenario(
         prelude_event
     )
 
-    # --------------------------------------------------------------
+    
     # Step 2 — External email
-    # --------------------------------------------------------------
+    
 
     email_request = ToolRequest(
 
@@ -848,9 +846,9 @@ def run_a3_scenario(
     }
 
 
-# ------------------------------------------------------------------
+
 # A8 - Request budget exhaustion
-# ------------------------------------------------------------------
+
 
 def run_a8_scenario(
     scenario,
@@ -933,9 +931,9 @@ def run_a8_scenario(
     return results
 
 
-# ------------------------------------------------------------------
+
 # A9 - Deep Inspection Exhaustion
-# ------------------------------------------------------------------
+
 
 def run_a9_scenario(
     scenario,
@@ -1018,9 +1016,9 @@ def run_a9_scenario(
     return results
 
 
-# ------------------------------------------------------------------
+
 # Page
-# ------------------------------------------------------------------
+
 
 st.title(
     "AI Agent Console"
@@ -1032,15 +1030,15 @@ st.caption(
 )
 
 
-# ------------------------------------------------------------------
+
 # Mode check
-# ------------------------------------------------------------------
+
 
 if st.session_state.dashboard_mode == "Demo":
 
-    # ==============================================================
+    
     # DEMO MODE
-    # ==============================================================
+    
 
     st.info(
         "Demo Mode — controlled ToolRequests are sent "
@@ -1108,9 +1106,7 @@ if st.session_state.dashboard_mode == "Demo":
 
                 try:
 
-                    # --------------------------------------------------
                     # A3
-                    # --------------------------------------------------
 
                     if scenario.get(
                         "type"
@@ -1222,9 +1218,9 @@ if st.session_state.dashboard_mode == "Demo":
                             )
 
 
-                    # --------------------------------------------------
+                    
                     # A8 - Request Budget Exhaustion
-                    # --------------------------------------------------
+                    
 
                     elif scenario.get(
                         "type"
@@ -1343,9 +1339,9 @@ if st.session_state.dashboard_mode == "Demo":
                             )
 
 
-                    # --------------------------------------------------
+                    
                     # A9 - Deep Inspection Exhaustion
-                    # --------------------------------------------------
+                    
 
                     elif scenario.get(
                         "type"
@@ -1465,9 +1461,9 @@ if st.session_state.dashboard_mode == "Demo":
                             )
 
 
-                    # --------------------------------------------------
+                    
                     # Existing single-request scenarios
-                    # --------------------------------------------------
+                    
 
                     else:
 
@@ -1557,9 +1553,9 @@ if st.session_state.dashboard_mode == "Demo":
 
 elif st.session_state.dashboard_mode == "Gemini":
 
-    # ==============================================================
+    
     # GEMINI MODE
-    # ==============================================================
+    
 
     chat_col, security_col = st.columns(
         [1.55, 1],

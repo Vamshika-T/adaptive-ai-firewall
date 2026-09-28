@@ -5,35 +5,35 @@ def calculate_risk(
     trajectory_score
 ):
 
-    # -----------------------------------------------------
+    
     # Authorization is a hard security boundary.
-    # -----------------------------------------------------
+    
 
     if not authorization_ok:
         return 100
 
     risk = 0
 
-    # -----------------------------------------------------
+    
     # Resource sensitivity
-    # -----------------------------------------------------
+    
 
     risk += sensitivity_score * 0.30
 
-    # -----------------------------------------------------
+    
     # Intent mismatch
-    # -----------------------------------------------------
+    
 
     if not intent_consistent:
         risk += 25
 
-    # -----------------------------------------------------
+    
     # Multi-step trajectory
     #
     # Trajectory receives a higher weight because
     # dangerous behavior often becomes visible only
     # when multiple actions are considered together.
-    # -----------------------------------------------------
+    
 
     risk += trajectory_score * 0.75
 

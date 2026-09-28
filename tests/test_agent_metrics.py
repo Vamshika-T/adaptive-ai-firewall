@@ -31,9 +31,9 @@ def make_result(
 metrics = AgentMetrics()
 
 
-# ============================================================
+
 # LEGITIMATE REQUESTS
-# ============================================================
+
 
 result = make_result(
     "ALLOW",
@@ -57,18 +57,8 @@ metrics.record_result(result)
 metrics.record_legitimate_workflow(result)
 
 
-# ============================================================
+
 # BLOCKED ATTACKS
-# ============================================================
-
-result = make_result(
-    "BLOCK",
-    100.0,
-    None
-)
-
-metrics.record_result(result)
-metrics.record_attack(result)
 
 
 result = make_result(
@@ -81,9 +71,19 @@ metrics.record_result(result)
 metrics.record_attack(result)
 
 
-# ============================================================
+result = make_result(
+    "BLOCK",
+    100.0,
+    None
+)
+
+metrics.record_result(result)
+metrics.record_attack(result)
+
+
+
 # MONITOR
-# ============================================================
+
 
 result = make_result(
     "MONITOR",
@@ -96,9 +96,9 @@ result = make_result(
 metrics.record_result(result)
 
 
-# ============================================================
+
 # VALIDATION
-# ============================================================
+
 
 summary = metrics.summary()
 

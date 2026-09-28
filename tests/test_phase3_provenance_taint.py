@@ -24,9 +24,9 @@ def make_request(
     )
 
 
-# =========================================================
+
 # CLEAN CONTEXT
-# =========================================================
+
 
 firewall_clean = FirewallInterceptor()
 
@@ -57,9 +57,9 @@ print("Inspection:", clean_decision.inspection_level)
 print("Reasons:", clean_decision.reasons)
 
 
-# =========================================================
+
 # TAINTED CONTEXT
-# =========================================================
+
 
 firewall_tainted = FirewallInterceptor()
 
@@ -101,9 +101,9 @@ assert any(
 )
 
 
-# =========================================================
+
 # TAINTED CONTEXT → CRM WRITE
-# =========================================================
+
 
 firewall_crm = FirewallInterceptor()
 

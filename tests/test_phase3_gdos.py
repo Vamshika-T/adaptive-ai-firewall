@@ -22,9 +22,9 @@ def make_request(
     )
 
 
-# =========================================================
+
 # TEST 1 — REQUEST LIMIT THROUGH FIREWALL
-# =========================================================
+
 
 firewall = FirewallInterceptor()
 
@@ -69,9 +69,9 @@ assert any(
 )
 
 
-# =========================================================
+
 # TEST 2 — DEEP INSPECTION LIMIT THROUGH FIREWALL
-# =========================================================
+
 
 firewall = FirewallInterceptor()
 
@@ -139,9 +139,9 @@ assert any(
 )
 
 
-# =========================================================
+
 # TEST 3 — SESSION ISOLATION
-# =========================================================
+
 
 firewall = FirewallInterceptor()
 
@@ -168,9 +168,9 @@ print("Session B decision:", decision.action)
 assert decision.action == "ALLOW"
 
 
-# =========================================================
+
 # TEST 4 — RESET
-# =========================================================
+
 
 firewall.resource_guard.reset_session(
     "SESSION-A"

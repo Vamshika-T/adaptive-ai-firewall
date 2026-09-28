@@ -18,9 +18,9 @@ def make_request(
     )
 
 
-# =========================================================
+
 # TEST 1: AUTHORIZED CALENDAR REQUEST
-# =========================================================
+
 
 print("\n========================================")
 print("TEST 1: AUTHORIZED CALENDAR REQUEST")
@@ -52,9 +52,9 @@ assert decision.action == "ALLOW"
 assert result is not None
 
 
-# =========================================================
+
 # TEST 2: UNAUTHORIZED PAYROLL REQUEST
-# =========================================================
+
 
 print("\n========================================")
 print("TEST 2: UNAUTHORIZED PAYROLL REQUEST")
@@ -83,9 +83,9 @@ assert decision.action == "BLOCK"
 assert result is None
 
 
-# =========================================================
+
 # TEST 3: UNKNOWN USER
-# =========================================================
+
 
 print("\n========================================")
 print("TEST 3: UNKNOWN USER")
@@ -114,9 +114,9 @@ assert decision.action == "BLOCK"
 assert result is None
 
 
-# =========================================================
+
 # TEST 4: ABAC - OTHER USER'S CALENDAR
-# =========================================================
+
 
 print("\n========================================")
 print("TEST 4: ABAC CALENDAR RESTRICTION")
@@ -147,9 +147,9 @@ assert decision.risk_score == 100
 assert result is None
 
 
-# =========================================================
+
 # TEST 5: INTENT MISMATCH
-# =========================================================
+
 
 print("\n========================================")
 print("TEST 5: INTENT MISMATCH")
@@ -183,9 +183,9 @@ assert any(
 assert decision.risk_score >= 25
 
 
-# =========================================================
+
 # TEST 6: TAINTED CONTEXT → WRITE ACTION
-# =========================================================
+
 
 print("\n========================================")
 print("TEST 6: TAINTED CONTEXT WRITE ACTION")
@@ -224,9 +224,9 @@ assert any(
 )
 
 
-# =========================================================
+
 # TEST 7: EMAIL TO DATABASE TRAJECTORY
-# =========================================================
+
 
 print("\n========================================")
 print("TEST 7: EMAIL TO DATABASE TRAJECTORY")
@@ -283,9 +283,9 @@ assert decision2.inspection_level in {
 }
 
 
-# =========================================================
+
 # TEST 8: DATABASE TO EXTERNAL EMAIL TRAJECTORY
-# =========================================================
+
 
 print("\n========================================")
 print("TEST 8: DATABASE TO EXTERNAL EMAIL TRAJECTORY")
@@ -355,9 +355,9 @@ assert decision2.action in {
 }
 
 
-# =========================================================
+
 # TEST 9: TAINTED CONTEXT → WRITE ACTION
-# =========================================================
+
 
 print("\n========================================")
 print("TEST 9: TAINTED WRITE ACTION")
@@ -395,9 +395,9 @@ assert any(
 )
 
 
-# =========================================================
+
 # TEST 10: REQUEST RESOURCE LIMIT
-# =========================================================
+
 
 print("\n========================================")
 print("TEST 10: REQUEST RESOURCE LIMIT")
@@ -434,9 +434,9 @@ assert budget_ok is False
 assert reason == "Session request limit exceeded"
 
 
-# =========================================================
+
 # TEST 11: DEEP INSPECTION RESOURCE LIMIT
-# =========================================================
+
 
 print("\n========================================")
 print("TEST 11: DEEP INSPECTION LIMIT")
@@ -470,9 +470,9 @@ assert budget_ok is False
 assert reason == "Deep inspection budget exceeded"
 
 
-# =========================================================
+
 # FINAL RESULT
-# =========================================================
+
 
 print("\n========================================")
 print("ALL EXTENDED PHASE 3 FIREWALL TESTS PASSED")

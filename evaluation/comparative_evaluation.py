@@ -38,9 +38,9 @@ from evaluation.scenarios import (
 OUTPUT_DIR = Path(__file__).parent / "comparison_results"
 
 
-# -----------------------------------------------------------------
+
 # Common helpers
-# -----------------------------------------------------------------
+
 
 
 def make_request(scenario, session_id, request_number):
@@ -143,9 +143,9 @@ def base_record(
     }
 
 
-# -----------------------------------------------------------------
+
 # 1. NO DEFENSE
-# -----------------------------------------------------------------
+
 
 
 def run_no_defense(scenario, session_id):
@@ -174,9 +174,9 @@ def run_no_defense(scenario, session_id):
     return records
 
 
-# -----------------------------------------------------------------
+
 # 2. RBAC / ABAC ONLY
-# -----------------------------------------------------------------
+
 
 
 def rbac_abac_decision(request):
@@ -244,9 +244,9 @@ def run_rbac_abac(scenario, session_id):
     return records
 
 
-# -----------------------------------------------------------------
+
 # 3. AGENTVISOR-STYLE STI BASELINE
-# -----------------------------------------------------------------
+
 
 # This is deliberately independent from our firewall modules.
 # It models the paper's trusted visor boundary:
@@ -449,9 +449,9 @@ def run_agentvisor_style(scenario, session_id):
     return records
 
 
-# -----------------------------------------------------------------
+
 # 4. ADAPTIVE AI FIREWALL
-# -----------------------------------------------------------------
+
 
 
 def run_adaptive(scenario, session_id):
@@ -487,9 +487,9 @@ def run_adaptive(scenario, session_id):
     return records
 
 
-# -----------------------------------------------------------------
+
 # Scenario aggregation
-# -----------------------------------------------------------------
+
 
 
 def aggregate_scenario(records):
@@ -580,9 +580,9 @@ def run_method(method_name, scenarios, runner):
     return all_records
 
 
-# -----------------------------------------------------------------
+
 # Metrics
-# -----------------------------------------------------------------
+
 
 
 def method_metrics(records):
@@ -670,9 +670,9 @@ def method_metrics(records):
     }
 
 
-# -----------------------------------------------------------------
+
 # Output
-# -----------------------------------------------------------------
+
 
 
 def print_results(scenario_records, metrics):

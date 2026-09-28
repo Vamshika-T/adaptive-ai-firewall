@@ -24,9 +24,9 @@ def determine_inspection_level(
 
     reasons = []
 
-    # -------------------------------------------------
+    
     # DEEP INSPECTION
-    # -------------------------------------------------
+    
 
     if tainted:
         reasons.append(
@@ -76,9 +76,9 @@ def determine_inspection_level(
             "reasons": reasons
         }
 
-    # -------------------------------------------------
+    
     # CONTEXTUAL INSPECTION
-    # -------------------------------------------------
+    
 
     if sensitivity_score >= 50:
         reasons.append(
@@ -111,9 +111,9 @@ def determine_inspection_level(
             "reasons": reasons
         }
 
-    # -------------------------------------------------
+    
     # FAST INSPECTION
-    # -------------------------------------------------
+    
 
     reasons.append(
         "Request has low contextual risk"

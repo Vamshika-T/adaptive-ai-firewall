@@ -11,9 +11,6 @@ def deep_semantic_inspection(
     It evaluates suitability, trust/taint and integrity-related
     signals before a high-risk request can execute.
 
-    The interface is intentionally isolated so a stronger
-    AgentVisor-style semantic implementation can be used
-    without changing the firewall pipeline.
     """
 
     reasons = []

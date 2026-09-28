@@ -35,9 +35,9 @@ def calculate_metrics(records):
         if record["type"] == "legitimate"
     ]
 
-    # --------------------------------------------------------
+    
     # ATTACK METRICS
-    # --------------------------------------------------------
+    
 
     firewall_reached = [
         record
@@ -72,9 +72,9 @@ def calculate_metrics(records):
         if record["scenario_prevented"]
     ]
 
-    # --------------------------------------------------------
+    
     # LEGITIMATE WORKFLOW METRICS
-    # --------------------------------------------------------
+    
 
     legitimate_successes = [
         record
@@ -91,9 +91,9 @@ def calculate_metrics(records):
         }
     ]
 
-    # --------------------------------------------------------
+    
     # OTHER SECURITY SIGNALS
-    # --------------------------------------------------------
+    
 
     all_records = attacks + legitimate
 
@@ -124,9 +124,9 @@ def calculate_metrics(records):
 
     return {
 
-        # --------------------------------------------
+        
         # Attack
-        # --------------------------------------------
+        
 
         "attack_scenarios":
             len(attacks),
@@ -162,9 +162,9 @@ def calculate_metrics(records):
                 len(firewall_reached)
             ),
 
-        # --------------------------------------------
+        
         # Legitimate
-        # --------------------------------------------
+        
 
         "legitimate_workflows":
             len(legitimate),
@@ -187,9 +187,9 @@ def calculate_metrics(records):
                 len(legitimate)
             ),
 
-        # --------------------------------------------
+        
         # Context/security signals
-        # --------------------------------------------
+        
 
         "average_risk":
             round(

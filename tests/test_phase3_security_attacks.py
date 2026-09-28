@@ -43,9 +43,9 @@ def print_decision(title, req, decision, result):
     print("TOOL EXECUTED:", result is not None)
 
 
-# =========================================================
+
 # A1 — Unauthorized payroll
-# =========================================================
+
 
 firewall = FirewallInterceptor()
 
@@ -71,9 +71,9 @@ assert decision.action == "BLOCK"
 assert result is None
 
 
-# =========================================================
+
 # A2 — Cross-user calendar
-# =========================================================
+
 
 firewall = FirewallInterceptor()
 
@@ -102,9 +102,9 @@ assert decision.action == "BLOCK"
 assert result is None
 
 
-# =========================================================
+
 # A3 — Database → external email
-# =========================================================
+
 
 firewall = FirewallInterceptor()
 
@@ -164,9 +164,9 @@ assert any(
 )
 
 
-# =========================================================
+
 # A4 — Malicious instruction → external write
-# =========================================================
+
 
 firewall = FirewallInterceptor()
 
@@ -207,9 +207,9 @@ assert decision.action in {
 assert decision.inspection_level == "DEEP"
 
 
-# =========================================================
+
 # A5 — Unauthorized CRM update
-# =========================================================
+
 
 firewall = FirewallInterceptor()
 
@@ -239,9 +239,9 @@ assert decision.action == "BLOCK"
 assert result is None
 
 
-# =========================================================
+
 # A6 — Unauthorized document access
-# =========================================================
+
 
 firewall = FirewallInterceptor()
 
@@ -269,9 +269,9 @@ assert decision.action == "BLOCK"
 assert result is None
 
 
-# =========================================================
+
 # A7 — Tainted data → write
-# =========================================================
+
 
 firewall = FirewallInterceptor()
 
@@ -307,9 +307,9 @@ assert any(
 )
 
 
-# =========================================================
+
 # A8 — Suspicious intent
-# =========================================================
+
 
 firewall = FirewallInterceptor()
 

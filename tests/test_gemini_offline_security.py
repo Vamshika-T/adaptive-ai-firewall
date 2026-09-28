@@ -31,9 +31,9 @@ def main():
 
     firewall = FirewallInterceptor()
 
-    # ---------------------------------------------------------
+    
     # TEST 1: Legitimate Gemini-generated request
-    # ---------------------------------------------------------
+    
     print("\nTEST 1: LEGITIMATE TOOL REQUEST")
 
     request = make_request(
@@ -59,9 +59,9 @@ def main():
     print("PASS")
 
 
-    # ---------------------------------------------------------
+    
     # TEST 2: Gemini-generated unauthorized payroll request
-    # ---------------------------------------------------------
+    
     print("\nTEST 2: UNAUTHORIZED PAYROLL REQUEST")
 
     request = make_request(
@@ -89,9 +89,9 @@ def main():
     print("PASS")
 
 
-    # ---------------------------------------------------------
+    
     # TEST 3: Gemini-generated suspicious intent
-    # ---------------------------------------------------------
+    
     print("\nTEST 3: SUSPICIOUS INSTRUCTION")
 
     request = make_request(
@@ -119,9 +119,9 @@ def main():
     print("PASS - current measured behavior recorded")
 
 
-    # ---------------------------------------------------------
+    
     # TEST 4: Tainted external write
-    # ---------------------------------------------------------
+    
     print("\nTEST 4: TAINTED EXTERNAL WRITE")
 
     request = make_request(

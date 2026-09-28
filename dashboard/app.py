@@ -7,9 +7,7 @@ from dashboard.data.state import (
 )
 
 
-# ============================================================
 # PAGE CONFIGURATION
-# ============================================================
 
 st.set_page_config(
     page_title="Adaptive AI Firewall",
@@ -19,39 +17,33 @@ st.set_page_config(
 )
 
 
-# ============================================================
 # INITIALIZATION
-# ============================================================
 
 initialize_dashboard_state()
 apply_dashboard_styles()
 
 
-# ============================================================
 # SIDEBAR
-# ============================================================
+
 
 with st.sidebar:
 
     st.markdown(
-        '<div style="font-size:1.15rem;font-weight:700;'
-        'color:#f5f7fa;margin-bottom:0.2rem;">'
-        'Adaptive AI Firewall'
-        '</div>'
-        '<div style="font-size:0.78rem;color:#7f8b97;'
-        'margin-bottom:1rem;">'
-        'Enterprise Agent Security Console'
-        '</div>',
+        """
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-title">
+                Adaptive AI Firewall
+            </div>
+            <div class="sidebar-brand-subtitle">
+                Security Console
+            </div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
-    st.markdown("---")
-
     st.markdown(
-        '<div style="color:#73e6a1;font-size:0.82rem;'
-        'font-weight:600;margin-bottom:0.8rem;">'
-        '● FIREWALL READY'
-        '</div>',
+        '<div class="sidebar-status">● Ready</div>',
         unsafe_allow_html=True,
     )
 
@@ -67,7 +59,7 @@ with st.sidebar:
         index=0,
         help=(
             "Demo mode runs controlled ToolRequests through "
-            "the real firewall. Gemini mode sends natural-language "
+            "the firewall. Gemini mode sends natural-language "
             "requests through Gemini and the same firewall."
         ),
     )
@@ -77,36 +69,31 @@ with st.sidebar:
     st.markdown("---")
 
     if st.button(
-        "Reset Dashboard Session",
+        "Reset Session",
         use_container_width=True,
     ):
-
         clear_dashboard_session()
-
         st.rerun()
 
     st.markdown("---")
 
     st.caption(
-        "Security decisions are made by the "
-        "Adaptive AI Firewall, not by the dashboard."
+        "Security decisions are made by the firewall."
     )
 
 
-# ============================================================
 # HEADER
-# ============================================================
 
 header_html = (
     '<div class="security-header">'
     '<div class="security-title">'
-    'Adaptive Context-Aware AI Firewall'
+    'Adaptive AI Firewall'
     '</div>'
     '<div class="security-subtitle">'
-    'Enterprise LLM Agent Security Console'
+    'Enterprise LLM security console'
     '</div>'
     '<div class="status-pill status-ready">'
-    '● SECURITY BACKEND READY'
+    '● System ready'
     '</div>'
     '</div>'
 )
@@ -117,9 +104,7 @@ st.markdown(
 )
 
 
-# ============================================================
 # PAGES
-# ============================================================
 
 overview_page = st.Page(
     "pages/overview.py",
@@ -153,9 +138,7 @@ architecture_page = st.Page(
 )
 
 
-# ============================================================
 # NAVIGATION
-# ============================================================
 
 pg = st.navigation(
     {
@@ -175,9 +158,7 @@ pg = st.navigation(
 pg.run()
 
 
-# ============================================================
 # FOOTER
-# ============================================================
 
 st.markdown(
     '<div class="dashboard-footer">'

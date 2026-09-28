@@ -21,9 +21,9 @@ def load_json(path):
         return json.load(file)
 
 
-# ---------------------------------------------------------
+
 # Source-level provenance
-# ---------------------------------------------------------
+
 
 def check_email_provenance(email_id):
     emails = load_json(EMAIL_FILE)
@@ -97,9 +97,9 @@ def check_document_provenance(document_id):
     }
 
 
-# ---------------------------------------------------------
+
 # Evaluate request context provenance
-# ---------------------------------------------------------
+
 
 def evaluate_provenance(context_sources):
 
@@ -164,9 +164,9 @@ def evaluate_provenance(context_sources):
     }
 
 
-# ---------------------------------------------------------
+
 # Session-level provenance / taint state
-# ---------------------------------------------------------
+
 
 class ProvenanceTracker:
     """

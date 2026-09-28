@@ -37,9 +37,9 @@ from evaluation.baseline_vs_protected import (
 )
 
 
-# ============================================================
+
 # REQUEST CREATION
-# ============================================================
+
 
 
 def create_request(
@@ -89,9 +89,9 @@ def create_request(
     )
 
 
-# ============================================================
+
 # SINGLE REQUEST EVALUATION
-# ============================================================
+
 
 
 def evaluate_request(
@@ -193,9 +193,9 @@ def evaluate_request(
     }
 
 
-# ============================================================
+
 # SECURITY SCENARIOS
-# ============================================================
+
 
 
 def run_security_scenarios():
@@ -212,9 +212,9 @@ def run_security_scenarios():
 
         request_number = 1
 
-        # ----------------------------------------------------
+        
         # Prelude actions create session context.
-        # ----------------------------------------------------
+        
 
         for prelude in scenario.get(
             "prelude",
@@ -259,9 +259,9 @@ def run_security_scenarios():
 
             request_number += 1
 
-        # ----------------------------------------------------
+        
         # Normal scenario
-        # ----------------------------------------------------
+        
 
         repeat = scenario.get(
             "repeat",
@@ -291,10 +291,10 @@ def run_security_scenarios():
 
             request_number += 1
 
-        # ----------------------------------------------------
+        
         # Aggregate repeated resource tests into
         # ONE evaluation scenario.
-        # ----------------------------------------------------
+        
 
         if repeat > 1:
 
@@ -360,9 +360,9 @@ def run_security_scenarios():
 
             record = execution_results[0]
 
-            # ------------------------------------------------
+            
             # Security criterion for each attack class.
-            # ------------------------------------------------
+            
 
             if scenario["category"] in {
                 "authorization",
@@ -444,9 +444,9 @@ def run_security_scenarios():
     return records
 
 
-# ============================================================
+
 # LEGITIMATE SCENARIOS
-# ============================================================
+
 
 
 def run_legitimate_scenarios():
@@ -489,9 +489,9 @@ def run_legitimate_scenarios():
     return records
 
 
-# ============================================================
+
 # PRINT SCENARIO TABLE
-# ============================================================
+
 
 
 def print_scenario_results(
@@ -540,9 +540,9 @@ def print_scenario_results(
         )
 
 
-# ============================================================
+
 # MAIN
-# ============================================================
+
 
 
 def main():
@@ -561,17 +561,17 @@ def main():
 
     print("=" * 100)
 
-    # --------------------------------------------------------
+    
     # Security
-    # --------------------------------------------------------
+    
 
     security_records = (
         run_security_scenarios()
     )
 
-    # --------------------------------------------------------
+    
     # Legitimate
-    # --------------------------------------------------------
+    
 
     legitimate_records = (
         run_legitimate_scenarios()
@@ -582,17 +582,17 @@ def main():
         + legitimate_records
     )
 
-    # --------------------------------------------------------
+    
     # Scenario output
-    # --------------------------------------------------------
+    
 
     print_scenario_results(
         all_records
     )
 
-    # --------------------------------------------------------
+    
     # Metrics
-    # --------------------------------------------------------
+    
 
     metrics = calculate_metrics(
         all_records
@@ -602,9 +602,9 @@ def main():
         metrics
     )
 
-    # --------------------------------------------------------
+    
     # Baseline comparison
-    # --------------------------------------------------------
+    
 
     print("\n")
 
@@ -618,9 +618,9 @@ def main():
 
     run_comparison()
 
-    # --------------------------------------------------------
+    
     # Important interpretation
-    # --------------------------------------------------------
+    
 
     print("\n")
 

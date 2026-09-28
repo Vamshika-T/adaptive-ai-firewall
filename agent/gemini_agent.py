@@ -149,9 +149,9 @@ class GeminiAgent:
 
         text = user_prompt.lower()
 
-        # ---------------------------------------------------------
+        
         # MULTI-STEP DATABASE -> EXTERNAL EMAIL
-        # ---------------------------------------------------------
+        
 
         database_terms = {
             "database",
@@ -186,9 +186,9 @@ class GeminiAgent:
             # the normal AUTO mode can select the email tool.
             return ["query_database"]
 
-        # ---------------------------------------------------------
+        
         # CALENDAR
-        # ---------------------------------------------------------
+        
 
         calendar_terms = {
             "calendar",
@@ -205,9 +205,9 @@ class GeminiAgent:
         if any(term in text for term in calendar_terms):
             return ["get_calendar_events"]
 
-        # ---------------------------------------------------------
+        
         # EMAIL
-        # ---------------------------------------------------------
+        
 
         email_terms = {
             "email",
@@ -231,9 +231,9 @@ class GeminiAgent:
 
             return ["read_email_inbox"]
 
-        # ---------------------------------------------------------
+        
         # EMPLOYEE LOOKUP
-        # ---------------------------------------------------------
+        
 
         employee_terms = {
             "employee",
@@ -257,9 +257,9 @@ class GeminiAgent:
         ):
             return ["search_employee"]
 
-        # ---------------------------------------------------------
+        
         # CUSTOMER
-        # ---------------------------------------------------------
+        
 
         customer_terms = {
             "customer",
@@ -286,9 +286,9 @@ class GeminiAgent:
                 "get_customer"
             ]
 
-        # ---------------------------------------------------------
+        
         # CRM
-        # ---------------------------------------------------------
+        
 
         crm_terms = {
             "crm",
@@ -298,9 +298,9 @@ class GeminiAgent:
         if any(term in text for term in crm_terms):
             return ["update_crm_record"]
 
-        # ---------------------------------------------------------
+        
         # DOCUMENT SEARCH
-        # ---------------------------------------------------------
+        
 
         document_search_terms = {
             "search documents",
@@ -313,9 +313,9 @@ class GeminiAgent:
         if any(term in text for term in document_search_terms):
             return ["search_documents"]
 
-        # ---------------------------------------------------------
+        
         # DOCUMENT READ
-        # ---------------------------------------------------------
+        
 
         document_read_terms = {
             "read document",
@@ -327,9 +327,9 @@ class GeminiAgent:
         if any(term in text for term in document_read_terms):
             return ["read_document"]
 
-        # ---------------------------------------------------------
+        
         # DATABASE
-        # ---------------------------------------------------------
+        
 
         database_terms = {
             "database",
@@ -358,9 +358,9 @@ class GeminiAgent:
         tainted=False,
         context_sources=None
     ):
-        # ---------------------------------------------------------
+        
         # AUTHENTICATED ENTERPRISE IDENTITY
-        # ---------------------------------------------------------
+        
 
         authenticated_user = get_user(self.user_id)
 
@@ -377,9 +377,9 @@ class GeminiAgent:
             authenticated_email = ""
             authenticated_role = ""
 
-        # ---------------------------------------------------------
+        
         # SYSTEM INSTRUCTIONS
-        # ---------------------------------------------------------
+        
 
         effective_intent = intent.strip() if intent else user_prompt
 
@@ -536,15 +536,15 @@ evaluates it.
         else:
             effective_system_instruction = default_system_instruction
 
-        # ---------------------------------------------------------
+        
         # DETERMINE SEMANTIC TOOL CATEGORY
-        # ---------------------------------------------------------
+        
 
         allowed_tools = self._get_allowed_tools(user_prompt)
 
-        # ---------------------------------------------------------
+        
         # BUILD CONVERSATION CONTENT
-        # ---------------------------------------------------------
+        
 
         contents = []
 
@@ -590,9 +590,9 @@ evaluates it.
             )
         )
 
-        # ---------------------------------------------------------
+        
         # TOOL-CALLING LOOP
-        # ---------------------------------------------------------
+        
 
         tool_results = []
 
@@ -602,7 +602,6 @@ evaluates it.
 
         for _ in range(max_rounds):
 
-            # -----------------------------------------------------
             # FIRST ROUND:
             #   If we know the semantic category, constrain Gemini
             #   to the appropriate function.
@@ -610,7 +609,6 @@ evaluates it.
             # FOLLOW-UP ROUNDS:
             #   Return to AUTO so Gemini can provide a normal answer
             #   after receiving the tool result.
-            # -----------------------------------------------------
 
             config_kwargs = {
                 "tools": [
@@ -665,9 +663,9 @@ evaluates it.
                 context_sources=context_sources
             )
 
-            # -----------------------------------------------------
+            
             # NORMAL GEMINI RESPONSE
-            # -----------------------------------------------------
+            
 
             if not requests:
 
@@ -678,9 +676,9 @@ evaluates it.
                     "tool_results": tool_results
                 }
 
-            # -----------------------------------------------------
+            
             # PRESERVE GEMINI FUNCTION-CALL CONTENT
-            # -----------------------------------------------------
+            
 
             model_content = response.candidates[0].content
 
@@ -690,9 +688,9 @@ evaluates it.
 
             for request in requests:
 
-                # -------------------------------------------------
+                
                 # SECURITY BOUNDARY
-                # -------------------------------------------------
+                
 
                 decision, result = firewall.execute(
                     request
@@ -704,9 +702,9 @@ evaluates it.
                     "result": result
                 })
 
-                # -------------------------------------------------
+                
                 # FIREWALL ENFORCEMENT
-                # -------------------------------------------------
+                
 
                 if decision.action in {
                     "BLOCK",
@@ -723,9 +721,9 @@ evaluates it.
                         "tool_results": tool_results
                     }
 
-                # -------------------------------------------------
+                
                 # RETURN APPROVED TOOL RESULT TO GEMINI
-                # -------------------------------------------------
+                
 
                 function_response_parts.append(
                     types.Part.from_function_response(
@@ -747,9 +745,9 @@ evaluates it.
             # firewall-approved tool result.
             first_round = False
 
-        # ---------------------------------------------------------
+        
         # MAXIMUM ROUNDS
-        # ---------------------------------------------------------
+        
 
         return {
             "status": "MAX_ROUNDS_EXCEEDED",

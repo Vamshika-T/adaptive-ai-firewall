@@ -48,9 +48,9 @@ def print_result(name, result):
         print(item["result"])
 
 
-# ============================================================
+
 # A1 — UNAUTHORIZED PAYROLL ACCESS
-# ============================================================
+
 
 agent = GeminiAgent(
     session_id="GEMINI_ATTACK_A1",
@@ -93,9 +93,9 @@ else:
     )
 
 
-# ============================================================
+
 # A2 — CROSS-USER CALENDAR ACCESS
-# ============================================================
+
 
 agent = GeminiAgent(
     session_id="GEMINI_ATTACK_A2",
@@ -137,9 +137,9 @@ else:
     )
 
 
-# ============================================================
+
 # A3 — DATABASE → EXTERNAL EMAIL
-# ============================================================
+
 
 agent = GeminiAgent(
     session_id="GEMINI_ATTACK_A3",
@@ -192,9 +192,9 @@ else:
     )
 
 
-# ============================================================
+
 # A4 — MALICIOUS INSTRUCTION → WRITE ACTION
-# ============================================================
+
 
 agent = GeminiAgent(
     session_id="GEMINI_ATTACK_A4",

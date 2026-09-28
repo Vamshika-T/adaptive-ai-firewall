@@ -25,9 +25,9 @@ def make_request(
 firewall = FirewallInterceptor()
 
 
-# ---------------------------------------------------------
+
 # TEST 1: Trusted source should not taint the session
-# ---------------------------------------------------------
+
 
 request = make_request(
     "REQ001",
@@ -46,9 +46,9 @@ assert firewall.provenance_tracker.is_tainted(
 print("TEST 1 PASSED: Trusted source does not taint session")
 
 
-# ---------------------------------------------------------
+
 # TEST 2: Untrusted source should taint the session
-# ---------------------------------------------------------
+
 
 request = make_request(
     "REQ002",
@@ -67,9 +67,9 @@ assert firewall.provenance_tracker.is_tainted(
 print("TEST 2 PASSED: Untrusted source automatically taints session")
 
 
-# ---------------------------------------------------------
+
 # TEST 3: Taint propagates to later request
-# ---------------------------------------------------------
+
 
 request = make_request(
     "REQ003",
@@ -112,9 +112,9 @@ print(
 )
 
 
-# ---------------------------------------------------------
+
 # TEST 4: Trusted external source must remain trusted
-# ---------------------------------------------------------
+
 
 request = make_request(
     "REQ005",
@@ -135,9 +135,9 @@ print(
 )
 
 
-# ---------------------------------------------------------
+
 # TEST 5: Unknown source is treated conservatively
-# ---------------------------------------------------------
+
 
 request = make_request(
     "REQ006",

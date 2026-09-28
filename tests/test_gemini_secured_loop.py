@@ -275,9 +275,9 @@ for item in result["tool_results"]:
     print(item["result"])
 
 
-# ---------------------------------------------------------
+
 # A3 SECURITY ASSERTION
-# ---------------------------------------------------------
+
 
 assert len(result["tool_results"]) >= 1
 
@@ -372,9 +372,9 @@ for item in result["tool_results"]:
     print(item["result"])
 
 
-# ---------------------------------------------------------
+
 # A2 SECURITY ASSERTION
-# ---------------------------------------------------------
+
 
 assert len(result["tool_results"]) > 0
 

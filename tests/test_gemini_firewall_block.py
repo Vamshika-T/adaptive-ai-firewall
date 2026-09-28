@@ -3,9 +3,9 @@ from agent.tool_definitions import TOOLS
 from firewall.interceptor import FirewallInterceptor
 
 
-# ---------------------------------------------------------
+
 # SETUP
-# ---------------------------------------------------------
+
 
 agent = GeminiAgent(
     session_id="GEMINI_ATTACK_001",
@@ -15,9 +15,9 @@ agent = GeminiAgent(
 firewall = FirewallInterceptor()
 
 
-# ---------------------------------------------------------
+
 # STEP 1: Legitimate request
-# ---------------------------------------------------------
+
 
 response1 = agent.generate(
     user_prompt=(
@@ -61,9 +61,9 @@ for request in requests1:
     assert decision.action == "ALLOW"
 
 
-# ---------------------------------------------------------
+
 # STEP 2: Attempt payroll access
-# ---------------------------------------------------------
+
 
 response2 = agent.generate(
     user_prompt=(

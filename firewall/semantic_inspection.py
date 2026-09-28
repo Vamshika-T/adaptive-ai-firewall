@@ -35,48 +35,48 @@ def analyze_semantic_risk(
     tool = request.tool
     intent = (request.intent or "").lower()
 
-    # -------------------------------------------------
+    
     # 1. Tainted context
-    # -------------------------------------------------
+    
     if tainted:
         score += 30
         reasons.append(
             "Request is influenced by tainted context"
         )
 
-    # -------------------------------------------------
+    
     # 2. Untrusted provenance
-    # -------------------------------------------------
+    
     if not provenance_trusted:
         score += 20
         reasons.append(
             "Request contains untrusted provenance"
         )
 
-    # -------------------------------------------------
+    
     # 3. Sensitive action
-    # -------------------------------------------------
+    
     if tool in SENSITIVE_ACTIONS:
         score += 15
         reasons.append(
             "Request performs a security-sensitive action"
         )
 
-    # -------------------------------------------------
+    
     # 4. External/write action
-    # -------------------------------------------------
+    
     if tool in EXTERNAL_ACTIONS:
         score += 10
         reasons.append(
             "Request performs an external or write action"
         )
 
-    # -------------------------------------------------
+    
     # 5. Suspicious intent keywords
-    # -------------------------------------------------
-        # -------------------------------------------------
+    
+        
     # 5. Suspicious intent keywords
-    # -------------------------------------------------
+    
     suspicious_keywords = [
         "ignore previous",
         "ignore instructions",
@@ -128,9 +128,9 @@ def analyze_semantic_risk(
             + ", ".join(matched_keywords)
         )
 
-    # -------------------------------------------------
+    
     # 5A. High-confidence instruction manipulation
-    # -------------------------------------------------
+    
     has_instruction_override = any(
         pattern in intent
         for pattern in instruction_override_patterns
@@ -149,9 +149,9 @@ def analyze_semantic_risk(
             "sensitive information disclosure request detected"
         )
 
-    # -------------------------------------------------
+    
     # 6. Suspicious trajectory
-    # -------------------------------------------------
+    
     if trajectory_score >= 30:
         score += 20
         reasons.append(

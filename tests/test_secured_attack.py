@@ -8,9 +8,9 @@ session_id = "SECURED_ATTACK_001"
 user_id = "U001"
 
 
-# ---------------------------------------------------------
+
 # STEP 1: Read email inbox
-# ---------------------------------------------------------
+
 
 request1 = ToolRequest(
     request_id="SECURED_ATTACK_001-REQ001",
@@ -29,9 +29,9 @@ print(decision1)
 print()
 
 
-# ---------------------------------------------------------
+
 # STEP 2: Attempt payroll access
-# ---------------------------------------------------------
+
 
 request2 = ToolRequest(
     request_id="SECURED_ATTACK_001-REQ002",
@@ -50,9 +50,9 @@ print(decision2)
 print()
 
 
-# ---------------------------------------------------------
+
 # STEP 3: Attempt external exfiltration
-# ---------------------------------------------------------
+
 
 request3 = ToolRequest(
     request_id="SECURED_ATTACK_001-REQ003",
@@ -74,9 +74,9 @@ print(decision3)
 print()
 
 
-# ---------------------------------------------------------
+
 # Verify security behavior
-# ---------------------------------------------------------
+
 
 assert decision1.action == "ALLOW"
 

@@ -3,9 +3,9 @@ from agent.tool_definitions import TOOLS
 from firewall.interceptor import FirewallInterceptor
 
 
-# -----------------------------------------------------
+
 # 1. Create Gemini agent
-# -----------------------------------------------------
+
 
 agent = GeminiAgent(
     session_id="GEMINI001",
@@ -13,16 +13,16 @@ agent = GeminiAgent(
 )
 
 
-# -----------------------------------------------------
+
 # 2. Create firewall
-# -----------------------------------------------------
+
 
 firewall = FirewallInterceptor()
 
 
-# -----------------------------------------------------
+
 # 3. Ask Gemini to perform an enterprise action
-# -----------------------------------------------------
+
 
 response = agent.generate(
     user_prompt=(
@@ -42,9 +42,9 @@ if response is None:
     raise SystemExit(0)
 
 
-# -----------------------------------------------------
+
 # 4. Convert Gemini function calls to ToolRequests
-# -----------------------------------------------------
+
 
 requests = agent.function_calls_to_requests(
     response,
@@ -61,9 +61,9 @@ for request in requests:
     print(request)
 
 
-# -----------------------------------------------------
+
 # 5. Send each request through the firewall
-# -----------------------------------------------------
+
 
 print("\n=== FIREWALL RESULTS ===")
 

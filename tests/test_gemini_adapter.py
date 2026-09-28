@@ -9,9 +9,9 @@ agent = GeminiAgent(
 )
 
 
-# ---------------------------------------------------------
+
 # Create a fake Gemini function-call response
-# ---------------------------------------------------------
+
 
 function_call = types.FunctionCall(
     id="call_001",
@@ -39,9 +39,9 @@ response = types.GenerateContentResponse(
 )
 
 
-# ---------------------------------------------------------
+
 # Test function-call extraction
-# ---------------------------------------------------------
+
 
 calls = agent.extract_function_calls(response)
 
@@ -56,9 +56,9 @@ assert calls[0]["arguments"] == {
 }
 
 
-# ---------------------------------------------------------
+
 # Test ToolRequest conversion
-# ---------------------------------------------------------
+
 
 requests = agent.function_calls_to_requests(
     response,

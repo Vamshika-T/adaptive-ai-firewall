@@ -29,9 +29,9 @@ from firewall.interceptor import FirewallInterceptor
 from evaluation.unfamiliar_scenarios import UNFAMILIAR_SCENARIOS
 
 
-# ============================================================
+
 # OUTPUT DIRECTORY
-# ============================================================
+
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__),
@@ -42,9 +42,9 @@ OUTPUT_DIR = os.path.join(
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-# ============================================================
+
 # REQUEST HELPERS
-# ============================================================
+
 
 def get_requests(scenario):
     """
@@ -65,16 +65,16 @@ def get_requests(scenario):
 
     requests = []
 
-    # --------------------------------------------------------
+    
     # Prelude requests
-    # --------------------------------------------------------
+    
 
     for prelude_request in scenario.get("prelude", []):
         requests.append(prelude_request)
 
-    # --------------------------------------------------------
+    
     # Final request
-    # --------------------------------------------------------
+    
 
     requests.append({
         "user_id": scenario["user_id"],
@@ -162,9 +162,9 @@ def make_request(
     )
 
 
-# ============================================================
+
 # DIRECT EXECUTION
-# ============================================================
+
 
 def execute_direct(request):
 
@@ -204,9 +204,9 @@ def execute_direct(request):
         }
 
 
-# ============================================================
+
 # NORMALIZE RBAC / ABAC RESULT
-# ============================================================
+
 
 def extract_check_result(result):
 
@@ -239,9 +239,9 @@ def extract_check_result(result):
     return bool(result), ""
 
 
-# ============================================================
+
 # DECISION FIELD HELPER
-# ============================================================
+
 
 def get_decision_value(
     decision,
@@ -267,9 +267,9 @@ def get_decision_value(
     return default
 
 
-# ============================================================
+
 # RECORD
-# ============================================================
+
 
 def base_record(
     scenario,
@@ -325,9 +325,9 @@ def base_record(
     }
 
 
-# ============================================================
+
 # 1. NO DEFENSE
-# ============================================================
+
 
 def run_no_defense(scenario):
 
@@ -366,9 +366,9 @@ def run_no_defense(scenario):
     return records
 
 
-# ============================================================
+
 # 2. RBAC / ABAC ONLY
-# ============================================================
+
 
 def run_rbac_abac(scenario):
 
@@ -392,9 +392,9 @@ def run_rbac_abac(scenario):
 
         try:
 
-            # ------------------------------------------------
+            
             # RBAC
-            # ------------------------------------------------
+            
 
             rbac_result = check_rbac(
                 request.user_id,
@@ -438,9 +438,9 @@ def run_rbac_abac(scenario):
 
                 continue
 
-            # ------------------------------------------------
+            
             # ABAC
-            # ------------------------------------------------
+            
 
             abac_result = check_abac(
                 request.user_id,
@@ -484,9 +484,9 @@ def run_rbac_abac(scenario):
 
                 continue
 
-            # ------------------------------------------------
+            
             # Authorized -> execute
-            # ------------------------------------------------
+            
 
             execution = execute_direct(
                 request
@@ -534,9 +534,9 @@ def run_rbac_abac(scenario):
     return records
 
 
-# ============================================================
+
 # 3. AGENTVISOR-STYLE STI
-# ============================================================
+
 
 FORBIDDEN_PATTERNS = [
     "ignore previous instructions",
@@ -759,9 +759,9 @@ def run_agentvisor(scenario):
     return records
 
 
-# ============================================================
+
 # 4. ADAPTIVE AI FIREWALL
-# ============================================================
+
 
 def run_adaptive_firewall(scenario):
 
@@ -840,9 +840,9 @@ def run_adaptive_firewall(scenario):
             if reasons is None:
                 reasons = []
 
-            # ------------------------------------------------
+            
             # BLOCK / ESCALATE
-            # ------------------------------------------------
+            
 
             if action in {
                 "BLOCK",
@@ -857,9 +857,9 @@ def run_adaptive_firewall(scenario):
                     "error": None,
                 }
 
-            # ------------------------------------------------
+            
             # ALLOW / MONITOR
-            # ------------------------------------------------
+            
 
             else:
 
@@ -949,9 +949,9 @@ def run_adaptive_firewall(scenario):
     return records
 
 
-# ============================================================
+
 # AGGREGATE SCENARIOS
-# ============================================================
+
 
 def aggregate_scenarios(records):
 
@@ -1033,9 +1033,9 @@ def aggregate_scenarios(records):
             ).upper() == "DEEP"
         )
 
-        # ----------------------------------------------------
+        
         # ATTACK
-        # ----------------------------------------------------
+        
 
         if scenario_type == "attack":
 
@@ -1050,9 +1050,9 @@ def aggregate_scenarios(records):
                 final_executed
             )
 
-        # ----------------------------------------------------
+        
         # LEGITIMATE
-        # ----------------------------------------------------
+        
 
         else:
 
@@ -1144,9 +1144,9 @@ def aggregate_scenarios(records):
     return results
 
 
-# ============================================================
+
 # METHOD METRICS
-# ============================================================
+
 
 def calculate_method_metrics(
     scenario_results
@@ -1317,9 +1317,9 @@ def calculate_method_metrics(
     return metrics
 
 
-# ============================================================
+
 # CSV WRITER
-# ============================================================
+
 
 def write_csv(
     path,
@@ -1349,9 +1349,9 @@ def write_csv(
         writer.writerows(rows)
 
 
-# ============================================================
+
 # MAIN
-# ============================================================
+
 
 def main():
 
@@ -1389,9 +1389,9 @@ def main():
         ),
     ]
 
-    # ========================================================
+    
     # RUN
-    # ========================================================
+    
 
     for scenario in UNFAMILIAR_SCENARIOS:
 
@@ -1449,9 +1449,9 @@ def main():
                     f"ERROR: {exc}"
                 )
 
-    # ========================================================
+    
     # AGGREGATE
-    # ========================================================
+    
 
     scenario_results = (
         aggregate_scenarios(
@@ -1465,9 +1465,9 @@ def main():
         )
     )
 
-    # ========================================================
+    
     # SAVE CSV
-    # ========================================================
+    
 
     scenario_path = os.path.join(
         OUTPUT_DIR,
@@ -1489,9 +1489,9 @@ def main():
         method_metrics,
     )
 
-    # ========================================================
+    
     # PRINT RESULTS
-    # ========================================================
+    
 
     print("\n" + "=" * 70)
     print("RESULTS")
@@ -1549,9 +1549,9 @@ def main():
             f"{metric['total_requests']}"
         )
 
-    # ========================================================
+    
     # FILE LOCATIONS
-    # ========================================================
+    
 
     print("\n" + "=" * 70)
     print("FILES")

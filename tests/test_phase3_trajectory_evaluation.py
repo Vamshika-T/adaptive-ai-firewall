@@ -33,10 +33,10 @@ def show(label, request, decision):
     print("REASONS:", decision.reasons)
 
 
-# =========================================================
+
 # SCENARIO 1
 # Direct database access
-# =========================================================
+
 
 firewall1 = FirewallInterceptor()
 
@@ -58,10 +58,10 @@ show(
 )
 
 
-# =========================================================
+
 # SCENARIO 2
 # Email → database
-# =========================================================
+
 
 firewall2 = FirewallInterceptor()
 
@@ -101,10 +101,10 @@ assert any(
 )
 
 
-# =========================================================
+
 # SCENARIO 3
 # Database → external email
-# =========================================================
+
 
 firewall3 = FirewallInterceptor()
 

@@ -19,9 +19,9 @@ def make_request(
     )
 
 
-# =========================================================
+
 # TEST 1 - Low-risk request uses FAST inspection
-# =========================================================
+
 
 request = make_request()
 
@@ -40,9 +40,9 @@ assert result["level"] == "FAST"
 print("TEST 1 PASSED: Low-risk request uses FAST inspection")
 
 
-# =========================================================
+
 # TEST 2 - Confidential resource uses CONTEXTUAL
-# =========================================================
+
 
 request = make_request(
     tool="query_database",
@@ -64,9 +64,9 @@ assert result["level"] == "CONTEXTUAL"
 print("TEST 2 PASSED: Confidential resource uses CONTEXTUAL inspection")
 
 
-# =========================================================
+
 # TEST 3 - Tainted context forces DEEP
-# =========================================================
+
 
 request = make_request(
     tool="send_email_message",
@@ -88,9 +88,9 @@ assert result["level"] == "DEEP"
 print("TEST 3 PASSED: Tainted context forces DEEP inspection")
 
 
-# =========================================================
+
 # TEST 4 - Suspicious trajectory forces DEEP
-# =========================================================
+
 
 request = make_request(
     tool="send_email_message",
@@ -112,9 +112,9 @@ assert result["level"] == "DEEP"
 print("TEST 4 PASSED: Suspicious trajectory forces DEEP inspection")
 
 
-# =========================================================
+
 # TEST 5 - High semantic risk forces DEEP
-# =========================================================
+
 
 request = make_request(
     tool="send_email_message",
@@ -146,10 +146,10 @@ assert inspection_result["level"] == "DEEP"
 print("TEST 5 PASSED: High semantic risk forces DEEP inspection")
 
 
-# =========================================================
+
 # TEST 6 - Trusted external context does not automatically
 #          force DEEP
-# =========================================================
+
 
 request = make_request(
     tool="read_email",
