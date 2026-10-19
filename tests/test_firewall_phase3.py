@@ -1,6 +1,30 @@
+from types import SimpleNamespace
 from models.schemas import ToolRequest
 from firewall.interceptor import FirewallInterceptor
+class FakeSemanticAuditor:
+    """Deterministic auditor for testing existing firewall behavior."""
 
+    def audit(
+        self,
+        request,
+        original_task,
+        inspection_level="DEEP",
+    ):
+        return SimpleNamespace(
+            task_aligned=True,
+            action_appropriate=True,
+            arguments_integrity=True,
+            suspicious=False,
+            risk_score=0,
+            recommendation="ALLOW",
+            reasons=["Fake auditor used in regression test"],
+        )
+
+
+def make_test_firewall():
+    firewall = FirewallInterceptor()
+    firewall.semantic_auditor = FakeSemanticAuditor()
+    return firewall
 
 def make_request(
     tool,
@@ -26,7 +50,7 @@ print("\n========================================")
 print("TEST 1: AUTHORIZED CALENDAR REQUEST")
 print("========================================")
 
-firewall = FirewallInterceptor()
+firewall = make_test_firewall()
 
 request = make_request(
     tool="get_calendar_events",
@@ -122,7 +146,7 @@ print("\n========================================")
 print("TEST 4: ABAC CALENDAR RESTRICTION")
 print("========================================")
 
-firewall = FirewallInterceptor()
+firewall = make_test_firewall()
 
 request = make_request(
     tool="get_calendar_events",
@@ -155,7 +179,7 @@ print("\n========================================")
 print("TEST 5: INTENT MISMATCH")
 print("========================================")
 
-firewall = FirewallInterceptor()
+firewall = make_test_firewall()
 
 request = make_request(
     tool="get_calendar_events",
@@ -191,7 +215,7 @@ print("\n========================================")
 print("TEST 6: TAINTED CONTEXT WRITE ACTION")
 print("========================================")
 
-firewall = FirewallInterceptor()
+firewall = make_test_firewall()
 
 request = make_request(
     tool="send_email_message",
@@ -232,7 +256,7 @@ print("\n========================================")
 print("TEST 7: EMAIL TO DATABASE TRAJECTORY")
 print("========================================")
 
-firewall = FirewallInterceptor()
+firewall = make_test_firewall()
 
 # Step 1: Read email
 request1 = make_request(
@@ -291,7 +315,7 @@ print("\n========================================")
 print("TEST 8: DATABASE TO EXTERNAL EMAIL TRAJECTORY")
 print("========================================")
 
-firewall = FirewallInterceptor()
+firewall = make_test_firewall()
 
 # Step 1: Access sensitive employee database
 request1 = make_request(
@@ -363,7 +387,7 @@ print("\n========================================")
 print("TEST 9: TAINTED WRITE ACTION")
 print("========================================")
 
-firewall = FirewallInterceptor()
+firewall = make_test_firewall()
 
 request = make_request(
     tool="send_email_message",
@@ -403,7 +427,7 @@ print("\n========================================")
 print("TEST 10: REQUEST RESOURCE LIMIT")
 print("========================================")
 
-firewall = FirewallInterceptor()
+firewall = make_test_firewall()
 
 session_id = "RESOURCE-TEST"
 
@@ -442,7 +466,7 @@ print("\n========================================")
 print("TEST 11: DEEP INSPECTION LIMIT")
 print("========================================")
 
-firewall = FirewallInterceptor()
+firewall = make_test_firewall()
 
 session_id = "DEEP-TEST"
 

@@ -20,7 +20,10 @@ def run_workflow(
         intent=intent
     )
 
-    decision, result = firewall.execute(request)
+    decision, result = firewall.execute(
+        request,
+        original_task=intent,
+    )
 
     print("\n" + "=" * 70)
     print(name)

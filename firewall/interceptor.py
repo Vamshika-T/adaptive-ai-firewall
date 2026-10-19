@@ -1,7 +1,9 @@
+from firewall.semantic_auditor import SemanticAuditor, SemanticAuditResult
 from models.schemas import (
     ToolRequest,
     ActionRecord
 )
+from firewall.information_flow import InformationFlowTracker
 
 from models.decisions import SecurityDecision
 
@@ -28,7 +30,8 @@ from firewall.intent import (
 )
 
 from firewall.trajectory import (
-    analyze_trajectory
+    analyze_trajectory,
+    requires_deep_trajectory_inspection,
 )
 
 from firewall.risk_engine import (
@@ -39,6 +42,7 @@ from firewall.risk_engine import (
 from firewall.provenance import ProvenanceTracker
 
 from firewall.inspection import (
+    determine_preliminary_inspection_level,
     determine_inspection_level
 )
 
@@ -53,18 +57,75 @@ from firewall.resource_limits import (
 
 class FirewallInterceptor:
 
-    def __init__(self):
+    def __init__(self, semantic_auditor=None):
+        # Allow controlled evaluation/tests to reuse or inject an auditor.
+        # Production defaults to the configured Gemini-backed auditor.
+        self.semantic_auditor = semantic_auditor or SemanticAuditor()
         self.session_history = {}
         self.provenance_tracker = ProvenanceTracker()
+        self.information_flow = InformationFlowTracker()
         self.security_contexts = {}
+
+        # Trusted task state is maintained by the application, not inferred
+        # from model messages or retrieved enterprise content. A new top-level
+        # user request explicitly starts a new task generation for the session.
+        self.trusted_tasks = {}
+        self._task_generations = {}
 
         # Phase 2D resource/GDoS protection
         self.resource_guard = ResourceGuard(
             max_requests_per_session=50,
             max_deep_inspections=10
         )
+        
+        # Adaptive-routing instrumentation.
+        # These counters observe behavior; they do not affect decisions.
+        self.routing_metrics = {
+            "preliminary": {
+                "FAST": 0,
+                "CONTEXTUAL": 0,
+                "DEEP": 0,
+            },
+            "final": {
+                "FAST": 0,
+                "CONTEXTUAL": 0,
+                "DEEP": 0,
+            },
+            "semantic_auditor_calls": 0,
+        }
+
 
     
+    # TRUSTED ORIGINAL TASK
+
+    @staticmethod
+    def _normalise_task(task):
+        return " ".join(str(task or "").split())
+
+    def begin_trusted_task(self, session_id, original_task):
+        """Register a task supplied at the authenticated user-entry boundary.
+
+        Call once for each new top-level user request, before the agent starts
+        processing model output. Tool outputs and model-generated messages must
+        never call this method to redefine the task.
+        """
+        task = self._normalise_task(original_task)
+        if not task:
+            raise ValueError("A non-empty trusted original task is required")
+
+        generation = self._task_generations.get(session_id, 0) + 1
+        self._task_generations[session_id] = generation
+        self.trusted_tasks[session_id] = {
+            "task": task,
+            "generation": generation,
+        }
+        return {"session_id": session_id, "generation": generation}
+
+    def get_trusted_task(self, session_id):
+        """Return the current trusted task record without modifying it."""
+        record = self.trusted_tasks.get(session_id)
+        return dict(record) if record else None
+
     # SESSION HISTORY
     
 
@@ -433,337 +494,479 @@ class FirewallInterceptor:
         checks.append(
             "Resource sensitivity"
         )
+        # 5A. PRELIMINARY ADAPTIVE ROUTING
 
-        
-        # 6. INTENT
-        
-
-        intent_result = analyze_intent(
-            request
-        )
-
-        checks.append(
-            "Intent consistency"
-        )
-
-        if not intent_result["consistent"]:
-
-            reasons.append(
-                intent_result["reason"]
-            )
-
-        
-        # 7. TRAJECTORY
-        
-
-        history = self.get_history(
-            request.session_id
-        )
-
-        trajectory_result = (
-            analyze_trajectory(
-                history,
-                request,
-                resource,
-                effective_tainted
-            )
-        )
-
-        checks.append(
-            "Action trajectory analysis"
-        )
-
-        # Add trajectory reasons ONCE
-        reasons.extend(
-            trajectory_result["reasons"]
-        )
-
-        
-        # 8. PHASE 2D - SEMANTIC / STI INSPECTION
-        
-
-        semantic_result = analyze_semantic_risk(
-            request=request,
-            resource=resource,
-            tainted=effective_tainted,
-            provenance_trusted=(
-                security_context.provenance_trusted
-            ),
-            trajectory_score=(
-                trajectory_result["score"]
-            )
-        )
-
-        semantic_score = (
-            semantic_result["semantic_score"]
-        )
-
-        reasons.extend(
-            semantic_result["reasons"]
-        )
-
-        checks.append(
-            "Semantic/STI inspection"
-        )
-
-        
-        # 9. PHASE 2D - ADAPTIVE INSPECTION
-        
-
-        inspection_result = (
-            determine_inspection_level(
-
+        preliminary_inspection_result = (
+            determine_preliminary_inspection_level(
                 request=request,
-
-                resource=resource,
-
                 sensitivity_score=sensitivity_score,
-
                 tainted=effective_tainted,
-
                 provenance_trusted=(
                     security_context.provenance_trusted
                 ),
-
-                trajectory_score=(
-                    trajectory_result["score"]
-                ),
-
-                semantic_score=semantic_score
             )
         )
 
-        inspection_level = (
-            inspection_result["level"]
+        preliminary_inspection_level = (
+            preliminary_inspection_result["level"]
         )
 
+        # Cheap workflow metadata can raise the initial route before the
+        # expensive trajectory/model checks are selected. In particular, a
+        # write after an earlier sensitive read must not stay FAST merely
+        # because the current email/CRM resource itself is not highly rated.
+        if requires_deep_trajectory_inspection(
+            self.get_history(request.session_id), request
+        ):
+            preliminary_inspection_level = "DEEP"
+            preliminary_inspection_result["reasons"].append(
+                "Prior sensitive-data access followed by a write requires deep workflow inspection"
+            )
+        
+        self.routing_metrics["preliminary"][
+            preliminary_inspection_level
+        ] += 1
+
+
         reasons.extend(
-            inspection_result["reasons"]
+            preliminary_inspection_result["reasons"]
         )
 
         checks.append(
-            "Adaptive inspection routing"
+            "Preliminary adaptive inspection routing"
         )
 
         
-        # 10. DEEP INSPECTION RESOURCE BUDGET
-        
+        # 6. ADAPTIVE INSPECTION: execute only checks required by the
+        # preliminary route. Authorization, provenance and sensitivity
+        # checks above always run; expensive contextual checks are conditional.
+        inspection_level = preliminary_inspection_level
+        intent_result = {"consistent": True, "reason": "Intent check skipped on FAST path"}
+        trajectory_result = {"score": 0, "critical": False, "reasons": []}
+        semantic_result = {"semantic_score": 0, "suspicious": False, "reasons": []}
+        semantic_score = 0
 
+        if inspection_level in {"CONTEXTUAL", "DEEP"}:
+            intent_result = analyze_intent(request)
+            checks.append("Intent consistency")
+            if not intent_result["consistent"]:
+                reasons.append(intent_result["reason"])
+
+            history = self.get_history(request.session_id)
+            trajectory_result = analyze_trajectory(
+                history, request, resource, effective_tainted
+            )
+            checks.append("Action trajectory analysis")
+            reasons.extend(trajectory_result.get("reasons", []))
+
+            semantic_result = analyze_semantic_risk(
+                request=request,
+                resource=resource,
+                tainted=effective_tainted,
+                provenance_trusted=security_context.provenance_trusted,
+                trajectory_score=trajectory_result.get("score", 0),
+            )
+            semantic_score = semantic_result.get("semantic_score", 0)
+            reasons.extend(semantic_result.get("reasons", []))
+            checks.append("Semantic/STI inspection")
+
+            # Additional findings may only increase inspection depth.
+            final_result = determine_inspection_level(
+                request=request,
+                resource=resource,
+                sensitivity_score=sensitivity_score,
+                tainted=effective_tainted,
+                provenance_trusted=security_context.provenance_trusted,
+                trajectory_score=trajectory_result.get("score", 0),
+                semantic_score=semantic_score,
+            )
+            levels = {"FAST": 0, "CONTEXTUAL": 1, "DEEP": 2}
+            candidate_level = final_result["level"]
+            if levels.get(candidate_level, 2) > levels.get(inspection_level, 2):
+                inspection_level = candidate_level
+            reasons.extend(final_result.get("reasons", []))
+            checks.append("Adaptive inspection refinement")
+
+        self.routing_metrics["final"][inspection_level] += 1
+
+        # FAST performs no trajectory or semantic analysis. If a request
+        # requires DEEP inspection, capacity must be checked before execution.
         if inspection_level == "DEEP":
-
             deep_budget_ok, deep_budget_reason = (
-                self.resource_guard.check_deep_inspection_budget(
-                    request.session_id
-                )
+                self.resource_guard.check_deep_inspection_budget(request.session_id)
             )
-
-            checks.append(
-                "Deep inspection budget"
-            )
-
+            checks.append("Deep inspection budget")
             if not deep_budget_ok:
-
                 decision = SecurityDecision(
-
                     request_id=request.request_id,
-
                     action="BLOCK",
-
                     risk_score=100,
-
                     inspection_level="DEEP",
-
                     reasons=[
                         deep_budget_reason,
-                        "Request blocked because safe deep inspection capacity is exhausted"
+                        "Request blocked because safe deep inspection capacity is exhausted",
                     ],
+                    checks=checks,
+                )
+                self.add_history(
+                    request, resource, decision, effective_tainted,
+                    security_context.provenance_trusted,
+                )
+                return decision
 
-                    checks=checks
+        # 7. RISK AGGREGATION. FAST uses conservative zero trajectory risk;
+        # all authorization and resource checks still apply.
+        risk_score = calculate_risk(
+            authorization_ok=True,
+            sensitivity_score=sensitivity_score,
+            intent_consistent=intent_result["consistent"],
+            trajectory_score=trajectory_result.get("score", 0),
+        )
+
+        if trajectory_result.get("critical", False):
+            risk_score = max(risk_score, 85)
+        if semantic_score >= 60:
+            risk_score = max(risk_score, 60)
+        checks.append("Risk aggregation")
+
+        # A critical trajectory is a mandatory enforcement condition, not
+        # merely a risk-score contribution. In particular, sensitive data
+        # followed by an external email must remain blocked even if a future
+        # threshold change would otherwise make the numeric score ALLOW.
+        action = (
+            "BLOCK"
+            if trajectory_result.get("critical", False)
+            else decide_action(risk_score)
+        )
+        if (
+            inspection_level == "DEEP"
+            and semantic_result.get("suspicious", False)
+            and action == "ALLOW"
+        ):
+            if sensitivity_score >= 75:
+                action = "BLOCK"
+                risk_score = max(risk_score, 85)
+            elif sensitivity_score >= 50:
+                action = "ESCALATE"
+                risk_score = max(risk_score, 60)
+            else:
+                action = "MONITOR"
+                risk_score = max(risk_score, 30)
+
+        if action == "ALLOW" and not reasons:
+            reasons.append("Request passed authorization and applicable inspection checks")
+
+        decision = SecurityDecision(
+            request_id=request.request_id,
+            action=action,
+            risk_score=risk_score,
+            inspection_level=inspection_level,
+            reasons=reasons,
+            checks=checks,
+        )
+
+        self.add_history(
+            request, resource, decision, effective_tainted,
+            security_context.provenance_trusted,
+        )
+        return decision
+
+    
+    def get_routing_metrics(self):
+        """Return a snapshot of adaptive-routing counters."""
+        return {
+            "preliminary": dict(self.routing_metrics["preliminary"]),
+            "final": dict(self.routing_metrics["final"]),
+            "semantic_auditor_calls": (
+                self.routing_metrics["semantic_auditor_calls"]
+            ),
+        }
+
+    # EXECUTION
+    
+
+    
+    def execute(
+        self,
+        request: ToolRequest,
+        original_task=None,
+    ):
+        """
+        Inspect and audit a tool request before execution.
+
+        ALLOW permits execution.
+        MONITOR and ESCALATE require approval.
+        BLOCK never permits execution.
+
+        Parent artifact IDs are validated before tool execution.
+        Derived outputs inherit the sensitivity and provenance of
+        their parent artifacts.
+        """
+        # Resolve the trusted task before inspection or any model call. For
+        # backwards compatibility, a direct first execute() call may establish
+        # the task; once established, a per-call replacement is rejected. The
+        # agent's run_secured() registers a task explicitly at user entry.
+        task_record = self.trusted_tasks.get(request.session_id)
+        supplied_task = self._normalise_task(original_task)
+
+        if task_record is None and supplied_task:
+            self.begin_trusted_task(request.session_id, supplied_task)
+            task_record = self.trusted_tasks[request.session_id]
+
+        trusted_task = task_record["task"] if task_record else ""
+        if supplied_task and trusted_task and supplied_task != trusted_task:
+            decision = SecurityDecision(
+                request_id=request.request_id,
+                action="BLOCK",
+                risk_score=100,
+                inspection_level="DEEP",
+                reasons=[
+                    "Request blocked because the supplied task differs from "
+                    "the application-trusted original task",
+                    "Untrusted content cannot redefine the trusted task",
+                ],
+                checks=["Trusted original-task validation"],
+            )
+            self.add_history(
+                request,
+                get_resource(request.tool, request.arguments),
+                decision,
+                request.tainted,
+                self.provenance_tracker.is_trusted(request.session_id),
+            )
+            return decision, None
+
+        decision = self.inspect(request)
+
+        # Deterministic security decisions take priority.
+        if decision.action == "BLOCK":
+            return decision, None
+
+        if decision.action == "ESCALATE":
+            return decision, None
+
+        # Validate lineage before any enterprise tool can execute.
+        if request.parent_artifact_ids:
+            existing_artifacts = self.information_flow.get_artifacts(
+                request.session_id
+            )
+            existing_ids = {
+                artifact["artifact_id"]
+                for artifact in existing_artifacts
+            }
+
+            unknown_parent_ids = [
+                parent_id
+                for parent_id in request.parent_artifact_ids
+                if parent_id not in existing_ids
+            ]
+
+            if unknown_parent_ids:
+                decision.action = "BLOCK"
+                decision.risk_score = max(decision.risk_score, 100)
+                decision.checks.append(
+                    "Artifact lineage validation"
+                )
+                decision.reasons.append(
+                    "Request blocked because one or more parent "
+                    "artifact IDs are unknown in this session: "
+                    + ", ".join(unknown_parent_ids)
                 )
 
                 self.add_history(
                     request,
-                    resource,
+                    get_resource(request.tool, request.arguments),
                     decision,
-                    effective_tainted,
-                    security_context.provenance_trusted
+                    request.tainted,
+                    self.provenance_tracker.is_trusted(
+                        request.session_id
+                    ),
                 )
+                return decision, None
 
-                return decision
-
-        
-        # 11. RISK
-        
-
-        risk_score = calculate_risk(
-
-            authorization_ok=True,
-
-            sensitivity_score=sensitivity_score,
-
-            intent_consistent=(
-                intent_result["consistent"]
-            ),
-
-            trajectory_score=(
-                trajectory_result["score"]
-            )
-        )
-
-        # Critical trajectory gets a minimum high risk
-        if trajectory_result["critical"]:
-
-            risk_score = max(
-                risk_score,
-                85
+            decision.checks.append(
+                "Artifact lineage validation"
             )
 
-        # Semantic risk contributes to contextual risk.
-        # We keep the existing Phase 2C risk engine as the
-        # primary decision mechanism and only raise risk when
-        # semantic inspection identifies substantial risk.
-        if semantic_score >= 60:
+        # FAST skips the model auditor.
+        # CONTEXTUAL and DEEP require semantic auditing.
+        if decision.inspection_level in {"CONTEXTUAL", "DEEP"}:
+            self.routing_metrics["semantic_auditor_calls"] += 1
 
-            risk_score = max(
-                risk_score,
-                60
+            # Fail closed if the model auditor errors or returns an invalid
+            # object. A failed audit must never leave a high-impact request
+            # eligible for execution.
+            try:
+                raw_audit_result = self.semantic_auditor.audit(
+                    request=request,
+                    original_task=trusted_task or None,
+                    inspection_level=decision.inspection_level,
+                )
+                if isinstance(raw_audit_result, SemanticAuditResult):
+                    # Revalidate even model instances. Pydantic's
+                    # model_construct() can create instances without normal
+                    # validation, so isinstance() alone is not a trust boundary.
+                    audit_result = SemanticAuditResult.model_validate(
+                        raw_audit_result.model_dump(),
+                        strict=True,
+                    )
+                elif isinstance(raw_audit_result, dict):
+                    audit_result = SemanticAuditResult.model_validate(
+                        raw_audit_result,
+                        strict=True,
+                    )
+                else:
+                    raise ValueError(
+                        "Auditor returned an unsupported response type"
+                    )
+            except Exception as error:
+                decision.action = "ESCALATE"
+                decision.risk_score = 100
+                decision.checks.append(
+                    "Model-based semantic security audit (FAIL-CLOSED)"
+                )
+                decision.reasons.append(
+                    "Request was not executed because semantic auditing "
+                    "failed validation or raised an error: "
+                    f"{type(error).__name__}: {error}"
+                )
+                self.add_history(
+                    request,
+                    get_resource(request.tool, request.arguments),
+                    decision,
+                    request.tainted,
+                    self.provenance_tracker.is_trusted(request.session_id),
+                )
+                return decision, None
+
+            decision.checks.append(
+                "Model-based semantic security audit"
+            )
+            decision.reasons.extend(audit_result.reasons)
+
+            # Never reduce the existing risk score.
+            decision.risk_score = max(
+                decision.risk_score,
+                audit_result.risk_score,
             )
 
-        checks.append(
-            "Risk aggregation"
-        )
+            if audit_result.recommendation == "BLOCK":
+                decision.action = "BLOCK"
+                decision.risk_score = max(decision.risk_score, 85)
 
-        
-        # 12. DECISION
-        
+            elif audit_result.recommendation == "ESCALATE":
+                decision.action = "ESCALATE"
+                decision.risk_score = max(decision.risk_score, 60)
 
-        action = decide_action(
-            risk_score
-        )
+            elif audit_result.recommendation == "MONITOR":
+                if decision.action == "ALLOW":
+                    decision.action = "MONITOR"
+                decision.risk_score = max(decision.risk_score, 30)
 
-        # Safety-first handling for deep suspicious requests
-        if (
-            inspection_level == "DEEP"
-            and semantic_result["suspicious"]
-            and action == "ALLOW"
-        ):
+            elif audit_result.risk_score >= 70:
+                decision.action = "BLOCK"
 
-            if sensitivity_score >= 75:
-                action = "BLOCK"
-                risk_score = max(
-                    risk_score,
-                    85
-                )
+            elif audit_result.risk_score >= 45:
+                decision.action = "ESCALATE"
 
-            elif sensitivity_score >= 50:
-                action = "ESCALATE"
-                risk_score = max(
-                    risk_score,
-                    60
-                )
+            elif audit_result.risk_score >= 25:
+                if decision.action == "ALLOW":
+                    decision.action = "MONITOR"
 
-            else:
-                action = "MONITOR"
-                risk_score = max(
-                    risk_score,
-                    30
-                )
-
-        if action == "ALLOW":
-
-            if not reasons:
-
-                reasons.append(
-                    "Request passed authorization, "
-                    "attribute, and contextual checks"
-                )
-
-        decision = SecurityDecision(
-
-            request_id=request.request_id,
-
-            action=action,
-
-            risk_score=risk_score,
-
-            inspection_level=inspection_level,
-
-            reasons=reasons,
-
-            checks=checks
-        )
-
-        
-        # 13. AUDIT HISTORY
-        
-
-        self.add_history(
-
-            request,
-
-            resource,
-
-            decision,
-
-            effective_tainted,
-
-            security_context.provenance_trusted
-        )
-
-        return decision
-
-    
-    # EXECUTION
-    
-
-    def execute(
-        self,
-        request: ToolRequest
-    ):
-
-        decision = self.inspect(
-            request
-        )
-
-        
-        # BLOCK and ESCALATE stop execution
-        
-
-        if decision.action in {
-            "BLOCK",
-            "ESCALATE"
-        }:
-
-            return (
+            # Record the final decision after auditing.
+            self.add_history(
+                request,
+                get_resource(request.tool, request.arguments),
                 decision,
-                None
+                request.tainted,
+                True,
             )
 
-        
-        # Execute enterprise tool
-        
+        # Information-flow enforcement before outbound email execution.
+        if (
+            decision.action == "ALLOW"
+            and request.tool == "send_email_message"
+        ):
+            flow_result = self.information_flow.check_outbound_payload(
+                session_id=request.session_id,
+                recipient=request.arguments.get("recipient", ""),
+                payload=request.arguments.get("body", ""),
+            )
 
+            decision.checks.append(
+                "Outbound information-flow policy"
+            )
+            decision.reasons.append(flow_result["reason"])
+
+            if not flow_result["allowed"]:
+                decision.action = "BLOCK"
+                decision.risk_score = max(
+                    decision.risk_score,
+                    100,
+                )
+
+                decision.reasons.append(
+                    "Outbound action blocked because sensitive "
+                    "artifact content was detected"
+                )
+
+                self.add_history(
+                    request,
+                    get_resource(
+                        request.tool,
+                        request.arguments,
+                    ),
+                    decision,
+                    request.tainted,
+                    self.provenance_tracker.is_trusted(
+                        request.session_id,
+                    ),
+                )
+
+        # Enforce the decision at the execution boundary.
+        # MONITOR is not equivalent to permission to execute.
+        if decision.action in {"BLOCK", "ESCALATE", "MONITOR"}:
+            return decision, None
+
+        # Only ALLOW reaches the enterprise tool.
         result = execute_tool(
-
             request.tool,
-
-            request.arguments
+            request.arguments,
         )
 
-        
-        # Filter document search results
-        
-
+        # Preserve existing document-result filtering.
         if request.tool == "search_documents":
-
             result = filter_document_results(
-
                 request.user_id,
-
-                result
+                result,
             )
 
-        return (
-            decision,
-            result
+        # Record successful tool output and preserve lineage.
+        resource = get_resource(
+            request.tool,
+            request.arguments,
         )
+
+        if result is not None:
+            if request.parent_artifact_ids:
+                artifact = self.information_flow.record_derived_artifact(
+                    session_id=request.session_id,
+                    tool=request.tool,
+                    resource=resource,
+                    result=result,
+                    parent_artifact_ids=request.parent_artifact_ids,
+                )
+            else:
+                artifact = self.information_flow.record_artifact(
+                    session_id=request.session_id,
+                    tool=request.tool,
+                    resource=resource,
+                    result=result,
+                    sensitivity=get_sensitivity(resource),
+                    provenance_sources=request.context_sources,
+                )
+
+            # Associate the recorded output with this request.
+            request.output_artifact_id = artifact["artifact_id"]
+
+        return decision, result

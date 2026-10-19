@@ -108,6 +108,13 @@ assert result is None
 
 firewall = FirewallInterceptor()
 
+# Register the authenticated original task before the first tool call.
+# Internal HR review is permitted; external disclosure is not.
+firewall.begin_trusted_task(
+    "ATTACK-SESSION-A3",
+    "Retrieve employee information for internal HR review only; never send it externally."
+)
+
 req1 = request(
     "ATTACK-A3-001",
     "ATTACK-SESSION-A3",

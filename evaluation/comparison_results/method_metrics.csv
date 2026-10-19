@@ -1,5 +1,5 @@
-method,attack_prevention_rate,dangerous_execution_rate,gdos_prevention_rate,legitimate_success_rate,false_positive_rate,avg_scenario_latency_ms,median_scenario_latency_ms,executed_requests,total_requests,deep_inspection_rate
-No Defense,0.0,80.0,0.0,100.0,0.0,0.0971,0.0391,77,77,0.0
-RBAC/ABAC Only,40.0,40.0,0.0,100.0,0.0,0.3981,0.1033,73,77,0.0
-AgentVisor-style STI,30.0,50.0,0.0,100.0,0.0,0.129,0.0451,74,77,0.0
-Adaptive AI Firewall,100.0,0.0,100.0,100.0,0.0,0.8618,0.2116,57,77,22.08
+method,attack_prevention_rate,dangerous_execution_rate,gdos_prevention_rate,gdos_request_rejection_rate,gdos_request_execution_rate,legitimate_success_rate,false_positive_rate,avg_scenario_latency_ms,median_scenario_latency_ms,executed_requests,total_requests,deep_inspection_rate
+No Defense,0.0,80.0,0.0,0.0,100.0,100.0,0.0,1.1416,0.3037,77,77,0.0
+RBAC/ABAC Only,40.0,40.0,0.0,0.0,100.0,100.0,0.0,4.4137,1.1842,73,77,0.0
+AgentVisor-style STI,30.0,50.0,0.0,0.0,100.0,100.0,0.0,0.7652,0.2135,74,77,0.0
+Adaptive AI Firewall,90.0,0.0,50.0,19.35,80.65,100.0,0.0,354.9977,2.3175,57,77,22.08

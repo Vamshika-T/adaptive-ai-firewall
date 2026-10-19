@@ -14,7 +14,10 @@ Important:
 - AgentVisor-style is an independent deterministic approximation of
   the paper's STI audit boundary. It is NOT a reproduction of the
   original AgentVisor implementation or its LLM-based self-correction.
-- Adaptive uses the existing FirewallInterceptor unchanged.
+- Adaptive uses the existing FirewallInterceptor with the trusted task from
+  each controlled scenario fixture supplied at the execution boundary.
+- GDoS reports both strict scenario-level prevention and request-level
+  rejection/execution rates.
 - Results are measured at runtime; no numbers are hard-coded.
 """
 
@@ -28,6 +31,7 @@ from tools.registry import execute_tool
 from firewall.authorization import check_rbac
 from firewall.abac import check_abac
 from firewall.interceptor import FirewallInterceptor
+from firewall.semantic_auditor import SemanticAuditor
 
 from evaluation.scenarios import (
     SECURITY_SCENARIOS,
@@ -36,6 +40,19 @@ from evaluation.scenarios import (
 
 
 OUTPUT_DIR = Path(__file__).parent / "comparison_results"
+
+
+# Reuse the Gemini client across evaluation scenarios to permit HTTP connection
+# pooling. Each scenario still gets its own FirewallInterceptor and isolated
+# session, provenance, information-flow, trusted-task, and resource-limit state.
+_SHARED_SEMANTIC_AUDITOR = None
+
+
+def get_shared_semantic_auditor():
+    global _SHARED_SEMANTIC_AUDITOR
+    if _SHARED_SEMANTIC_AUDITOR is None:
+        _SHARED_SEMANTIC_AUDITOR = SemanticAuditor()
+    return _SHARED_SEMANTIC_AUDITOR
 
 
 
@@ -455,14 +472,33 @@ def run_agentvisor_style(scenario, session_id):
 
 
 def run_adaptive(scenario, session_id):
-    firewall = FirewallInterceptor()
+    firewall = FirewallInterceptor(
+        semantic_auditor=get_shared_semantic_auditor()
+    )
     records = []
     request_number = 1
+
+    # The evaluation scenario fixture is trusted test-harness metadata.
+    # Prefer an explicit original_task/task field; fall back to the fixture's
+    # intent for compatibility with existing scenarios. Never derive this
+    # value from email/document/tool output.
+    trusted_task = (
+        scenario.get("original_task")
+        or scenario.get("task")
+        or scenario.get("intent")
+        or ""
+    )
+    trusted_task = " ".join(str(trusted_task).split())
+    if trusted_task:
+        firewall.begin_trusted_task(session_id, trusted_task)
 
     for prelude in scenario.get("prelude", []):
         request = make_request(prelude, session_id, request_number)
         start = time.perf_counter()
-        decision, result = firewall.execute(request)
+        decision, result = firewall.execute(
+            request,
+            original_task=trusted_task or None,
+        )
         latency_ms = (time.perf_counter() - start) * 1000
         records.append(record_request(
             "Adaptive AI Firewall", scenario, request, decision.action,
@@ -475,7 +511,10 @@ def run_adaptive(scenario, session_id):
     for _ in range(repeat):
         request = make_request(scenario, session_id, request_number)
         start = time.perf_counter()
-        decision, result = firewall.execute(request)
+        decision, result = firewall.execute(
+            request,
+            original_task=trusted_task or None,
+        )
         latency_ms = (time.perf_counter() - start) * 1000
         records.append(record_request(
             "Adaptive AI Firewall", scenario, request, decision.action,
@@ -517,8 +556,9 @@ def aggregate_scenario(records):
     if is_attack:
         category = first.get("scenario_category", "")
         if category in {"gdos", "gdos_deep"}:
-            # GDoS is prevented only if at least one repeated request is stopped.
-            prevented = len(final_requests) > 0 and any(
+            # Scenario-level prevention requires every repeated final request
+            # to be stopped. Partial rejection is reported separately below.
+            prevented = len(final_requests) > 0 and all(
                 not r["executed"] for r in final_requests
             )
         else:
@@ -554,6 +594,9 @@ def aggregate_scenario(records):
         "latency_ms_avg": round(statistics.mean(latencies), 4),
         "latency_ms_median": round(statistics.median(latencies), 4),
         "request_count": len(records),
+        "final_request_count": len(final_requests),
+        "final_executed_count": sum(bool(r["executed"]) for r in final_requests),
+        "final_rejected_count": sum(not bool(r["executed"]) for r in final_requests),
         "deep_inspection_count": deep_count,
         "reasons": first["reasons"],
     }
@@ -620,6 +663,9 @@ def method_metrics(records):
         r for r in gdos
         if r["scenario_prevented"]
     ]
+    gdos_final_requests = sum(r["final_request_count"] for r in gdos)
+    gdos_rejected_requests = sum(r["final_rejected_count"] for r in gdos)
+    gdos_executed_requests = sum(r["final_executed_count"] for r in gdos)
 
     scenario_total_latencies = [
         r["latency_ms_total"]
@@ -644,6 +690,14 @@ def method_metrics(records):
             100 * len(gdos_prevented) / len(gdos),
             2,
         ) if gdos else 0.0,
+        "gdos_request_rejection_rate": round(
+            100 * gdos_rejected_requests / gdos_final_requests,
+            2,
+        ) if gdos_final_requests else 0.0,
+        "gdos_request_execution_rate": round(
+            100 * gdos_executed_requests / gdos_final_requests,
+            2,
+        ) if gdos_final_requests else 0.0,
         "legitimate_success_rate": round(
             100 * sum(r["success"] for r in legitimate)
             / len(legitimate),
@@ -686,7 +740,9 @@ def print_results(scenario_records, metrics):
         f"{'LEGIT SUCCESS':<15}"
         f"{'FALSE POS.':<13}"
         f"{'DANGEROUS':<13}"
-        f"{'GDoS PREV.':<13}"
+        f"{'GDoS SCEN.':<13}"
+        f"{'GDoS REJECT%':<14}"
+        f"{'GDoS EXEC%':<12}"
         f"{'AVG SCENARIO LAT.':<20}"
         f"{'MEDIAN LATENCY':<16}"
     )
@@ -700,6 +756,8 @@ def print_results(scenario_records, metrics):
             f"{item['false_positive_rate']:<13}"
             f"{item['dangerous_execution_rate']:<13}"
             f"{item['gdos_prevention_rate']:<13}"
+            f"{item['gdos_request_rejection_rate']:<14}"
+            f"{item['gdos_request_execution_rate']:<12}"
             f"{item['avg_scenario_latency_ms']:<20}"
             f"{item['median_scenario_latency_ms']:<16}"
         )
@@ -755,6 +813,9 @@ def save_csv(records, filename):
         "latency_ms_avg",
         "latency_ms_median",
         "request_count",
+        "final_request_count",
+        "final_executed_count",
+        "final_rejected_count",
         "deep_inspection_count",
     ]
 

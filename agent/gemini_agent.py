@@ -13,6 +13,7 @@ class GeminiAgent:
         self.user_id = user_id
         self.model = model
         self.request_counter = 0
+        self.tool_result_artifacts = {}
 
         api_key = os.getenv("GEMINI_API_KEY")
 
@@ -236,10 +237,10 @@ class GeminiAgent:
         
 
         employee_terms = {
-            "employee",
             "employee id",
             "employee record",
             "employee details",
+            "employee information",
             "staff record"
         }
 
@@ -298,20 +299,78 @@ class GeminiAgent:
         if any(term in text for term in crm_terms):
             return ["update_crm_record"]
 
-        
-        # DOCUMENT SEARCH
-        
 
+        # DOCUMENT SEARCH
+        # Check document requests before employee lookup.
         document_search_terms = {
             "search documents",
+            "search the company documents",
+            "search company documents",
             "find documents",
             "locate documents",
             "document search",
-            "search a document"
+            "search a document",
+            "employee handbook",
+            "company handbook",
+            "handbook",
+            "company documents",
+            "enterprise documents",
         }
 
         if any(term in text for term in document_search_terms):
             return ["search_documents"]
+
+        # EMPLOYEE LOOKUP
+        
+        # DOCUMENT SEARCH
+        # Must come before employee lookup because a document
+        # request may mention employees or the employee handbook.
+
+        document_search_terms = {
+            "search documents",
+            "search the company documents",
+            "search company documents",
+            "find documents",
+            "find information in enterprise documents",
+            "locate documents",
+            "document search",
+            "search a document",
+            "employee handbook",
+            "company handbook",
+            "handbook",
+            "company documents",
+            "enterprise documents"
+        }
+
+        if any(term in text for term in document_search_terms):
+            return ["search_documents"]
+
+        # EMPLOYEE LOOKUP
+
+        employee_terms = {
+            "employee id",
+            "employee record",
+            "employee details",
+            "staff record",
+            "employee information"
+        }
+
+        lookup_terms = {
+            "find",
+            "lookup",
+            "look up",
+            "search",
+            "retrieve"
+        }
+
+        if (
+            any(term in text for term in employee_terms)
+            and any(term in text for term in lookup_terms)
+        ):
+            return ["search_employee"]
+
+
+        
 
         
         # DOCUMENT READ
@@ -358,7 +417,38 @@ class GeminiAgent:
         tainted=False,
         context_sources=None
     ):
-        
+        # Keep the authenticated user's current request as the trusted task.
+        # Conversation history and tool-returned content are context only;
+        # they must not replace this value for semantic auditing.
+        trusted_original_task = str(user_prompt or "").strip()
+        if not trusted_original_task:
+            return {
+                "status": "BLOCK",
+                "response": None,
+                "text": "A non-empty original user task is required.",
+                "tool_results": [],
+            }
+
+        # Register the top-level user request in firewall-controlled state
+        # before model processing begins. Retrieved emails/documents and
+        # model-generated follow-ups never get to replace this trusted task.
+        begin_task = getattr(firewall, "begin_trusted_task", None)
+        if callable(begin_task):
+            try:
+                begin_task(self.session_id, trusted_original_task)
+            except Exception:
+                return {
+                    "status": "BLOCK",
+                    "response": None,
+                    "text": "The firewall could not establish trusted task state.",
+                    "tool_results": [],
+                }
+
+        # Artifact IDs are session-scoped, but this cache is per run. Clearing
+        # it prevents stale outputs from an earlier run being inferred as
+        # parents in a later run.
+        self.tool_result_artifacts.clear()
+
         # AUTHENTICATED ENTERPRISE IDENTITY
         
 
@@ -692,9 +782,43 @@ evaluates it.
                 # SECURITY BOUNDARY
                 
 
-                decision, result = firewall.execute(
-                    request
+                                # Associate prior results only when their content is
+                # present in the current tool arguments.
+                request_text = str(request.arguments).casefold()
+
+                candidate_parents = set()
+
+                for artifact_id, previous_result in (
+                    self.tool_result_artifacts.items()
+                ):
+                    previous_text = str(previous_result).casefold().strip()
+
+                    if (
+                        len(previous_text) >= 8
+                        and previous_text in request_text
+                    ):
+                        candidate_parents.add(artifact_id)
+
+                # Preserve any parent IDs already assigned by trusted code.
+                request.parent_artifact_ids = sorted(
+                    set(request.parent_artifact_ids)
+                    | candidate_parents
                 )
+
+                decision, result = firewall.execute(
+                    request,
+                    original_task=trusted_original_task,
+                )
+
+                # Save only outputs that the firewall allowed to execute.
+                if (
+                    decision.action == "ALLOW"
+                    and result is not None
+                    and request.output_artifact_id
+                ):
+                    self.tool_result_artifacts[
+                        request.output_artifact_id
+                    ] = result
 
                 tool_results.append({
                     "request": request,
