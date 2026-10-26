@@ -1,3 +1,4 @@
+
 from firewall.semantic_auditor import SemanticAuditor, SemanticAuditResult
 from models.schemas import (
     ToolRequest,
@@ -72,12 +73,12 @@ class FirewallInterceptor:
         self.trusted_tasks = {}
         self._task_generations = {}
 
-        # Phase 2D resource/GDoS protection
+        # Resource and denial-of-service protection.
         self.resource_guard = ResourceGuard(
             max_requests_per_session=50,
             max_deep_inspections=10
         )
-        
+
         # Adaptive-routing instrumentation.
         # These counters observe behavior; they do not affect decisions.
         self.routing_metrics = {
@@ -94,8 +95,6 @@ class FirewallInterceptor:
             "semantic_auditor_calls": 0,
         }
 
-
-    
     # TRUSTED ORIGINAL TASK
 
     @staticmethod
@@ -127,96 +126,48 @@ class FirewallInterceptor:
         return dict(record) if record else None
 
     # SESSION HISTORY
-    
 
     def get_history(self, session_id):
+        return self.session_history.get(session_id, [])
 
-        return self.session_history.get(
-            session_id,
-            []
-        )
-
-    
     # SECURITY CONTEXT
-    
 
     def get_security_context(self, request, resource):
-
         from models.schemas import SecurityContext
 
-        user = get_user(
-            request.user_id
-        )
+        user = get_user(request.user_id)
 
         if request.session_id not in self.security_contexts:
-
-            self.security_contexts[
-                request.session_id
-            ] = SecurityContext(
-
+            self.security_contexts[request.session_id] = SecurityContext(
                 user_id=request.user_id,
-
-                role=(
-                    user["role"]
-                    if user
-                    else ""
-                ),
-
-                department=(
-                    user["department"]
-                    if user
-                    else ""
-                ),
-
+                role=user["role"] if user else "",
+                department=user["department"] if user else "",
                 resource=resource,
-
-                sensitivity=get_sensitivity(
-                    resource
-                ),
-
+                sensitivity=get_sensitivity(resource),
                 intent=request.intent
             )
 
-        context = self.security_contexts[
-            request.session_id
-        ]
+        context = self.security_contexts[request.session_id]
 
-        # Update current request information
+        # Update current request information.
         context.resource = resource
-
-        context.sensitivity = get_sensitivity(
-            resource
-        )
-
+        context.sensitivity = get_sensitivity(resource)
         context.intent = request.intent
 
-        
-        # Phase 2B provenance state
-        
-
+        # Refresh provenance state.
         context.provenance_trusted = (
-            self.provenance_tracker.is_trusted(
-                request.session_id
-            )
+            self.provenance_tracker.is_trusted(request.session_id)
         )
-
         context.tainted = (
-            self.provenance_tracker.is_tainted(
-                request.session_id
-            )
+            self.provenance_tracker.is_tainted(request.session_id)
         )
-
         context.provenance_sources = (
-            self.provenance_tracker.get_sources(
-                request.session_id
-            )
+            self.provenance_tracker.get_sources(request.session_id)
         )
 
         return context
 
-    
     # RECORD ACTION
-    
 
     def add_history(
         self,
@@ -226,85 +177,48 @@ class FirewallInterceptor:
         tainted=False,
         provenance_trusted=True
     ):
-
         record = ActionRecord(
-
             request_id=request.request_id,
-
             session_id=request.session_id,
-
             user_id=request.user_id,
-
             tool=request.tool,
-
             resource=resource,
-
             decision=decision.action,
-
             risk_score=decision.risk_score,
-
             tainted=tainted,
-
             provenance_trusted=provenance_trusted
         )
 
         if request.session_id not in self.session_history:
+            self.session_history[request.session_id] = []
 
-            self.session_history[
-                request.session_id
-            ] = []
-
-        self.session_history[
-            request.session_id
-        ].append(
+        self.session_history[request.session_id].append(
             record.model_dump()
         )
 
-    
     # INSPECTION
-    
 
     def inspect(self, request: ToolRequest):
-
         reasons = []
         checks = []
 
-        
-        # 0. RESOURCE / GDoS REQUEST BUDGET
-        
+        # 0. RESOURCE AND REQUEST BUDGET
 
         budget_ok, budget_reason = (
-            self.resource_guard.check_request_budget(
-                request.session_id
-            )
+            self.resource_guard.check_request_budget(request.session_id)
         )
-
-        checks.append(
-            "Resource request budget"
-        )
+        checks.append("Resource request budget")
 
         if not budget_ok:
-
             decision = SecurityDecision(
-
                 request_id=request.request_id,
-
                 action="BLOCK",
-
                 risk_score=100,
-
-                reasons=[
-                    budget_reason
-                ],
-
+                reasons=[budget_reason],
                 checks=checks
             )
 
-            resource = get_resource(
-                request.tool,
-                request.arguments
-            )
-
+            resource = get_resource(request.tool, request.arguments)
             self.add_history(
                 request,
                 resource,
@@ -312,43 +226,24 @@ class FirewallInterceptor:
                 request.tainted,
                 False
             )
-
             return decision
 
-        
         # 1. IDENTITY
-        
 
-        user = get_user(
-            request.user_id
-        )
-
-        checks.append(
-            "Identity verification"
-        )
+        user = get_user(request.user_id)
+        checks.append("Identity verification")
 
         if user is None:
-
             decision = SecurityDecision(
-
                 request_id=request.request_id,
-
                 action="BLOCK",
-
                 risk_score=100,
-
-                reasons=[
-                    "Unknown user identity"
-                ],
-
+                reasons=["Unknown user identity"],
                 checks=checks
             )
-
             return decision
 
-        
-        # 2. PHASE 2B - PROVENANCE
-        
+        # 2. PROVENANCE
 
         provenance_result = (
             self.provenance_tracker.process_context_sources(
@@ -357,143 +252,83 @@ class FirewallInterceptor:
             )
         )
 
-        # Determine resource for the request
-        resource = get_resource(
-            request.tool,
-            request.arguments
+        resource = get_resource(request.tool, request.arguments)
+
+        security_context = self.get_security_context(
+            request,
+            resource
         )
 
-        # Update security context
-        security_context = (
-            self.get_security_context(
-                request,
-                resource
-            )
-        )
-
-        
-        # Effective taint
-        #
-        # Taint can come from:
-        # 1. Explicit request taint
-        # 2. Current request provenance
-        # 3. Existing session taint
-        
-
+        # Taint can originate from the request, current provenance,
+        # or previously observed session state.
         effective_tainted = (
             request.tainted
             or provenance_result["tainted"]
             or security_context.tainted
         )
 
-        
         # 3. RBAC
-        
 
-        authorized, authorization_reason = (
-            check_rbac(
-                request.user_id,
-                request.tool,
-                request.arguments
-            )
-        )
-
-        checks.append(
-            "RBAC authorization"
-        )
-
-        if not authorized:
-
-            decision = SecurityDecision(
-
-                request_id=request.request_id,
-
-                action="BLOCK",
-
-                risk_score=100,
-
-                reasons=[
-                    authorization_reason
-                ],
-
-                checks=checks
-            )
-
-            self.add_history(
-                request,
-                resource,
-                decision,
-                effective_tainted,
-                security_context.provenance_trusted
-            )
-
-            return decision
-
-        
-        # 4. ABAC
-        
-
-        abac_allowed, abac_reason = (
-            check_abac(
-                request.user_id,
-                request.tool,
-                request.arguments
-            )
-        )
-
-        checks.append(
-            "ABAC policy evaluation"
-        )
-
-        if not abac_allowed:
-
-            decision = SecurityDecision(
-
-                request_id=request.request_id,
-
-                action="BLOCK",
-
-                risk_score=100,
-
-                reasons=[
-                    abac_reason
-                ],
-
-                checks=checks
-            )
-
-            self.add_history(
-                request,
-                resource,
-                decision,
-                effective_tainted,
-                security_context.provenance_trusted
-            )
-
-            return decision
-
-        
-        # 5. RESOURCE SENSITIVITY
-        
-
-        resource = get_resource(
+        authorized, authorization_reason = check_rbac(
+            request.user_id,
             request.tool,
             request.arguments
         )
+        checks.append("RBAC authorization")
 
-        sensitivity = get_sensitivity(
-            resource
-        )
-
-        sensitivity_score = (
-            get_sensitivity_score(
-                resource
+        if not authorized:
+            decision = SecurityDecision(
+                request_id=request.request_id,
+                action="BLOCK",
+                risk_score=100,
+                reasons=[authorization_reason],
+                checks=checks
             )
-        )
 
-        checks.append(
-            "Resource sensitivity"
+            self.add_history(
+                request,
+                resource,
+                decision,
+                effective_tainted,
+                security_context.provenance_trusted
+            )
+            return decision
+
+        # 4. ABAC
+
+        abac_allowed, abac_reason = check_abac(
+            request.user_id,
+            request.tool,
+            request.arguments
         )
+        checks.append("ABAC policy evaluation")
+
+        if not abac_allowed:
+            decision = SecurityDecision(
+                request_id=request.request_id,
+                action="BLOCK",
+                risk_score=100,
+                reasons=[abac_reason],
+                checks=checks
+            )
+
+            self.add_history(
+                request,
+                resource,
+                decision,
+                effective_tainted,
+                security_context.provenance_trusted
+            )
+            return decision
+
+        # 5. RESOURCE SENSITIVITY
+
+        resource = get_resource(request.tool, request.arguments)
+        sensitivity = get_sensitivity(resource)
+        sensitivity_score = get_sensitivity_score(resource)
+
+        checks.append("Resource sensitivity")
+
         # 5A. PRELIMINARY ADAPTIVE ROUTING
 
         preliminary_inspection_result = (
@@ -501,9 +336,7 @@ class FirewallInterceptor:
                 request=request,
                 sensitivity_score=sensitivity_score,
                 tainted=effective_tainted,
-                provenance_trusted=(
-                    security_context.provenance_trusted
-                ),
+                provenance_trusted=security_context.provenance_trusted,
             )
         )
 
@@ -511,50 +344,96 @@ class FirewallInterceptor:
             preliminary_inspection_result["level"]
         )
 
-        # Cheap workflow metadata can raise the initial route before the
-        # expensive trajectory/model checks are selected. In particular, a
-        # write after an earlier sensitive read must not stay FAST merely
-        # because the current email/CRM resource itself is not highly rated.
+        # A write following a sensitive-data read requires deep workflow
+        # inspection, even when the current resource is not highly sensitive.
         if requires_deep_trajectory_inspection(
-            self.get_history(request.session_id), request
+            self.get_history(request.session_id),
+            request
         ):
             preliminary_inspection_level = "DEEP"
             preliminary_inspection_result["reasons"].append(
-                "Prior sensitive-data access followed by a write requires deep workflow inspection"
+                "Prior sensitive-data access followed by a write "
+                "requires deep workflow inspection"
             )
-        
+
         self.routing_metrics["preliminary"][
             preliminary_inspection_level
         ] += 1
 
+        reasons.extend(preliminary_inspection_result["reasons"])
+        checks.append("Preliminary adaptive inspection routing")
 
-        reasons.extend(
-            preliminary_inspection_result["reasons"]
-        )
+        # 6. ADAPTIVE INSPECTION AND DEEP-INSPECTION BUDGET
 
-        checks.append(
-            "Preliminary adaptive inspection routing"
-        )
-
-        
-        # 6. ADAPTIVE INSPECTION: execute only checks required by the
-        # preliminary route. Authorization, provenance and sensitivity
-        # checks above always run; expensive contextual checks are conditional.
         inspection_level = preliminary_inspection_level
-        intent_result = {"consistent": True, "reason": "Intent check skipped on FAST path"}
-        trajectory_result = {"score": 0, "critical": False, "reasons": []}
-        semantic_result = {"semantic_score": 0, "suspicious": False, "reasons": []}
+        deep_budget_reserved = False
+
+        # Reserve deep-inspection capacity BEFORE trajectory analysis,
+        # semantic inspection, or any model-based auditor call.
+        if preliminary_inspection_level == "DEEP":
+            deep_budget_ok, deep_budget_reason = (
+                self.resource_guard.check_deep_inspection_budget(
+                    request.session_id
+                )
+            )
+            checks.append("Deep inspection budget")
+
+            if not deep_budget_ok:
+                self.routing_metrics["final"]["DEEP"] += 1
+
+                decision = SecurityDecision(
+                    request_id=request.request_id,
+                    action="BLOCK",
+                    risk_score=100,
+                    inspection_level="DEEP",
+                    reasons=[
+                        deep_budget_reason,
+                        "Request blocked before expensive deep inspection "
+                        "because capacity is exhausted",
+                    ],
+                    checks=checks,
+                )
+
+                self.add_history(
+                    request,
+                    resource,
+                    decision,
+                    effective_tainted,
+                    security_context.provenance_trusted,
+                )
+                return decision
+
+            deep_budget_reserved = True
+
+        intent_result = {
+            "consistent": True,
+            "reason": "Intent check skipped on FAST path",
+        }
+        trajectory_result = {
+            "score": 0,
+            "critical": False,
+            "reasons": [],
+        }
+        semantic_result = {
+            "semantic_score": 0,
+            "suspicious": False,
+            "reasons": [],
+        }
         semantic_score = 0
 
         if inspection_level in {"CONTEXTUAL", "DEEP"}:
             intent_result = analyze_intent(request)
             checks.append("Intent consistency")
+
             if not intent_result["consistent"]:
                 reasons.append(intent_result["reason"])
 
             history = self.get_history(request.session_id)
             trajectory_result = analyze_trajectory(
-                history, request, resource, effective_tainted
+                history,
+                request,
+                resource,
+                effective_tainted
             )
             checks.append("Action trajectory analysis")
             reasons.extend(trajectory_result.get("reasons", []))
@@ -570,7 +449,7 @@ class FirewallInterceptor:
             reasons.extend(semantic_result.get("reasons", []))
             checks.append("Semantic/STI inspection")
 
-            # Additional findings may only increase inspection depth.
+            # Inspection findings may increase depth, never decrease it.
             final_result = determine_inspection_level(
                 request=request,
                 resource=resource,
@@ -580,23 +459,36 @@ class FirewallInterceptor:
                 trajectory_score=trajectory_result.get("score", 0),
                 semantic_score=semantic_score,
             )
-            levels = {"FAST": 0, "CONTEXTUAL": 1, "DEEP": 2}
+
+            levels = {
+                "FAST": 0,
+                "CONTEXTUAL": 1,
+                "DEEP": 2,
+            }
             candidate_level = final_result["level"]
-            if levels.get(candidate_level, 2) > levels.get(inspection_level, 2):
+
+            if levels.get(candidate_level, 2) > levels.get(
+                inspection_level, 2
+            ):
                 inspection_level = candidate_level
+
             reasons.extend(final_result.get("reasons", []))
             checks.append("Adaptive inspection refinement")
 
-        self.routing_metrics["final"][inspection_level] += 1
-
-        # FAST performs no trajectory or semantic analysis. If a request
-        # requires DEEP inspection, capacity must be checked before execution.
-        if inspection_level == "DEEP":
+        # A request initially routed to CONTEXTUAL could be promoted to DEEP
+        # by inspection findings. Reserve capacity before risk aggregation
+        # and before the execution method can invoke the model auditor.
+        if inspection_level == "DEEP" and not deep_budget_reserved:
             deep_budget_ok, deep_budget_reason = (
-                self.resource_guard.check_deep_inspection_budget(request.session_id)
+                self.resource_guard.check_deep_inspection_budget(
+                    request.session_id
+                )
             )
             checks.append("Deep inspection budget")
+
             if not deep_budget_ok:
+                self.routing_metrics["final"]["DEEP"] += 1
+
                 decision = SecurityDecision(
                     request_id=request.request_id,
                     action="BLOCK",
@@ -604,18 +496,25 @@ class FirewallInterceptor:
                     inspection_level="DEEP",
                     reasons=[
                         deep_budget_reason,
-                        "Request blocked because safe deep inspection capacity is exhausted",
+                        "Request blocked because safe deep inspection "
+                        "capacity is exhausted",
                     ],
                     checks=checks,
                 )
+
                 self.add_history(
-                    request, resource, decision, effective_tainted,
+                    request,
+                    resource,
+                    decision,
+                    effective_tainted,
                     security_context.provenance_trusted,
                 )
                 return decision
 
-        # 7. RISK AGGREGATION. FAST uses conservative zero trajectory risk;
-        # all authorization and resource checks still apply.
+        self.routing_metrics["final"][inspection_level] += 1
+
+        # 7. RISK AGGREGATION
+
         risk_score = calculate_risk(
             authorization_ok=True,
             sensitivity_score=sensitivity_score,
@@ -625,19 +524,19 @@ class FirewallInterceptor:
 
         if trajectory_result.get("critical", False):
             risk_score = max(risk_score, 85)
+
         if semantic_score >= 60:
             risk_score = max(risk_score, 60)
+
         checks.append("Risk aggregation")
 
-        # A critical trajectory is a mandatory enforcement condition, not
-        # merely a risk-score contribution. In particular, sensitive data
-        # followed by an external email must remain blocked even if a future
-        # threshold change would otherwise make the numeric score ALLOW.
+        # A critical trajectory is a mandatory enforcement condition.
         action = (
             "BLOCK"
             if trajectory_result.get("critical", False)
             else decide_action(risk_score)
         )
+
         if (
             inspection_level == "DEEP"
             and semantic_result.get("suspicious", False)
@@ -653,8 +552,45 @@ class FirewallInterceptor:
                 action = "MONITOR"
                 risk_score = max(risk_score, 30)
 
+        # Deep inspections always require model-based auditing.
+        # Contextual inspections require auditing when risk signals justify
+        # the additional model call.
+        model_audit_required = (
+            inspection_level == "DEEP"
+            or (
+                inspection_level == "CONTEXTUAL"
+                and (
+                    not intent_result["consistent"]
+                    or trajectory_result.get("score", 0) > 0
+                    or trajectory_result.get("critical", False)
+                    or semantic_result.get("suspicious", False)
+                    or semantic_score >= 30
+                    or effective_tainted
+                    or not security_context.provenance_trusted
+                    or sensitivity_score >= 50
+                    or (
+                        "Suspicious intent signal requires contextual inspection"
+                        in reasons
+                    )
+                    or (
+                        request.tool in {
+                            "query_database",
+                            "send_email_message",
+                            "update_crm_record",
+                        }
+                        and bool(request.context_sources)
+                    )
+                )
+            )
+        )
+
+        if model_audit_required:
+            checks.append("Model-based semantic audit required")
+
         if action == "ALLOW" and not reasons:
-            reasons.append("Request passed authorization and applicable inspection checks")
+            reasons.append(
+                "Request passed authorization and applicable inspection checks"
+            )
 
         decision = SecurityDecision(
             request_id=request.request_id,
@@ -666,12 +602,14 @@ class FirewallInterceptor:
         )
 
         self.add_history(
-            request, resource, decision, effective_tainted,
+            request,
+            resource,
+            decision,
+            effective_tainted,
             security_context.provenance_trusted,
         )
         return decision
 
-    
     def get_routing_metrics(self):
         """Return a snapshot of adaptive-routing counters."""
         return {
@@ -683,9 +621,7 @@ class FirewallInterceptor:
         }
 
     # EXECUTION
-    
 
-    
     def execute(
         self,
         request: ToolRequest,
@@ -702,10 +638,9 @@ class FirewallInterceptor:
         Derived outputs inherit the sensitivity and provenance of
         their parent artifacts.
         """
-        # Resolve the trusted task before inspection or any model call. For
-        # backwards compatibility, a direct first execute() call may establish
-        # the task; once established, a per-call replacement is rejected. The
-        # agent's run_secured() registers a task explicitly at user entry.
+        # Resolve the trusted task before inspection or any model call.
+        # A direct first execute() call may establish the task for backwards
+        # compatibility; subsequent calls cannot redefine it.
         task_record = self.trusted_tasks.get(request.session_id)
         supplied_task = self._normalise_task(original_task)
 
@@ -714,6 +649,7 @@ class FirewallInterceptor:
             task_record = self.trusted_tasks[request.session_id]
 
         trusted_task = task_record["task"] if task_record else ""
+
         if supplied_task and trusted_task and supplied_task != trusted_task:
             decision = SecurityDecision(
                 request_id=request.request_id,
@@ -721,12 +657,13 @@ class FirewallInterceptor:
                 risk_score=100,
                 inspection_level="DEEP",
                 reasons=[
-                    "Request blocked because the supplied task differs from "
-                    "the application-trusted original task",
+                    "Request blocked because the supplied task differs "
+                    "from the application-trusted original task",
                     "Untrusted content cannot redefine the trusted task",
                 ],
                 checks=["Trusted original-task validation"],
             )
+
             self.add_history(
                 request,
                 get_resource(request.tool, request.arguments),
@@ -739,13 +676,10 @@ class FirewallInterceptor:
         decision = self.inspect(request)
 
         # Deterministic security decisions take priority.
-        if decision.action == "BLOCK":
+        if decision.action in {"BLOCK", "ESCALATE"}:
             return decision, None
 
-        if decision.action == "ESCALATE":
-            return decision, None
-
-        # Validate lineage before any enterprise tool can execute.
+        # Validate artifact lineage before any enterprise tool can execute.
         if request.parent_artifact_ids:
             existing_artifacts = self.information_flow.get_artifacts(
                 request.session_id
@@ -764,9 +698,7 @@ class FirewallInterceptor:
             if unknown_parent_ids:
                 decision.action = "BLOCK"
                 decision.risk_score = max(decision.risk_score, 100)
-                decision.checks.append(
-                    "Artifact lineage validation"
-                )
+                decision.checks.append("Artifact lineage validation")
                 decision.reasons.append(
                     "Request blocked because one or more parent "
                     "artifact IDs are unknown in this session: "
@@ -784,28 +716,27 @@ class FirewallInterceptor:
                 )
                 return decision, None
 
-            decision.checks.append(
-                "Artifact lineage validation"
-            )
+            decision.checks.append("Artifact lineage validation")
 
-        # FAST skips the model auditor.
-        # CONTEXTUAL and DEEP require semantic auditing.
-        if decision.inspection_level in {"CONTEXTUAL", "DEEP"}:
+        # Deep inspections always receive a model audit.
+        # Contextual inspections receive one when inspect() identifies
+        # risk signals that justify the model call.
+        if (
+            decision.inspection_level == "DEEP"
+            or "Model-based semantic audit required" in decision.checks
+        ):
             self.routing_metrics["semantic_auditor_calls"] += 1
 
             # Fail closed if the model auditor errors or returns an invalid
-            # object. A failed audit must never leave a high-impact request
-            # eligible for execution.
+            # response. An audit failure must never silently permit execution.
             try:
                 raw_audit_result = self.semantic_auditor.audit(
                     request=request,
                     original_task=trusted_task or None,
                     inspection_level=decision.inspection_level,
                 )
+
                 if isinstance(raw_audit_result, SemanticAuditResult):
-                    # Revalidate even model instances. Pydantic's
-                    # model_construct() can create instances without normal
-                    # validation, so isinstance() alone is not a trust boundary.
                     audit_result = SemanticAuditResult.model_validate(
                         raw_audit_result.model_dump(),
                         strict=True,
@@ -819,6 +750,7 @@ class FirewallInterceptor:
                     raise ValueError(
                         "Auditor returned an unsupported response type"
                     )
+
             except Exception as error:
                 decision.action = "ESCALATE"
                 decision.risk_score = 100
@@ -830,6 +762,7 @@ class FirewallInterceptor:
                     "failed validation or raised an error: "
                     f"{type(error).__name__}: {error}"
                 )
+
                 self.add_history(
                     request,
                     get_resource(request.tool, request.arguments),
@@ -839,9 +772,7 @@ class FirewallInterceptor:
                 )
                 return decision, None
 
-            decision.checks.append(
-                "Model-based semantic security audit"
-            )
+            decision.checks.append("Model-based semantic security audit")
             decision.reasons.extend(audit_result.reasons)
 
             # Never reduce the existing risk score.
@@ -882,7 +813,7 @@ class FirewallInterceptor:
                 True,
             )
 
-        # Information-flow enforcement before outbound email execution.
+        # Enforce information-flow policy before outbound email execution.
         if (
             decision.action == "ALLOW"
             and request.tool == "send_email_message"
@@ -893,18 +824,12 @@ class FirewallInterceptor:
                 payload=request.arguments.get("body", ""),
             )
 
-            decision.checks.append(
-                "Outbound information-flow policy"
-            )
+            decision.checks.append("Outbound information-flow policy")
             decision.reasons.append(flow_result["reason"])
 
             if not flow_result["allowed"]:
                 decision.action = "BLOCK"
-                decision.risk_score = max(
-                    decision.risk_score,
-                    100,
-                )
-
+                decision.risk_score = max(decision.risk_score, 100)
                 decision.reasons.append(
                     "Outbound action blocked because sensitive "
                     "artifact content was detected"
@@ -912,10 +837,7 @@ class FirewallInterceptor:
 
                 self.add_history(
                     request,
-                    get_resource(
-                        request.tool,
-                        request.arguments,
-                    ),
+                    get_resource(request.tool, request.arguments),
                     decision,
                     request.tainted,
                     self.provenance_tracker.is_trusted(
@@ -923,7 +845,6 @@ class FirewallInterceptor:
                     ),
                 )
 
-        # Enforce the decision at the execution boundary.
         # MONITOR is not equivalent to permission to execute.
         if decision.action in {"BLOCK", "ESCALATE", "MONITOR"}:
             return decision, None
@@ -934,14 +855,13 @@ class FirewallInterceptor:
             request.arguments,
         )
 
-        # Preserve existing document-result filtering.
         if request.tool == "search_documents":
             result = filter_document_results(
                 request.user_id,
                 result,
             )
 
-        # Record successful tool output and preserve lineage.
+        # Record successful tool output and preserve artifact lineage.
         resource = get_resource(
             request.tool,
             request.arguments,
@@ -966,7 +886,6 @@ class FirewallInterceptor:
                     provenance_sources=request.context_sources,
                 )
 
-            # Associate the recorded output with this request.
             request.output_artifact_id = artifact["artifact_id"]
 
         return decision, result

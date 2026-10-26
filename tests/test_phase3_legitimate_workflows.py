@@ -1,13 +1,79 @@
+
+import pytest
+
 from models.schemas import ToolRequest
 from firewall.interceptor import FirewallInterceptor
 
 
-def run_workflow(
+SCENARIOS = [
+    pytest.param(
+        "L1 Own Calendar",
+        "U001",
+        "get_calendar_events",
+        {
+            "user_email": "alice@company.com",
+            "date": "2026-09-23",
+        },
+        "Check my calendar meetings.",
+        id="L1-own-calendar",
+    ),
+    pytest.param(
+        "L2 Own Email",
+        "U001",
+        "read_email_inbox",
+        {"user_email": "alice@company.com"},
+        "Read my email.",
+        id="L2-own-email",
+    ),
+    pytest.param(
+        "L3 Authorized Customer",
+        "U003",
+        "search_customer",
+        {"customer_id": "C001"},
+        "Find information about my customer.",
+        id="L3-authorized-customer",
+    ),
+    pytest.param(
+        "L4 Enterprise Documents",
+        "U001",
+        "search_documents",
+        {"keyword": "Engineering"},
+        "Search engineering documents.",
+        id="L4-enterprise-documents",
+    ),
+    pytest.param(
+        "L5 Authorized CRM Update",
+        "U003",
+        "update_crm_record",
+        {
+            "customer_id": "C001",
+            "field": "status",
+            "value": "active",
+        },
+        "Update my customer's status.",
+        id="L5-authorized-crm-update",
+    ),
+    pytest.param(
+        "L6 HR Manager Employee Search",
+        "U002",
+        "search_employee",
+        {"employee_id": "U001"},
+        "Retrieve employee record U001 as an HR manager.",
+        id="L6-hr-manager-employee-search",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "name,user_id,tool,arguments,intent",
+    SCENARIOS,
+)
+def test_legitimate_workflow(
     name,
     user_id,
     tool,
     arguments,
-    intent
+    intent,
 ):
     firewall = FirewallInterceptor()
 
@@ -17,7 +83,7 @@ def run_workflow(
         user_id=user_id,
         tool=tool,
         arguments=arguments,
-        intent=intent
+        intent=intent,
     )
 
     decision, result = firewall.execute(
@@ -25,140 +91,20 @@ def run_workflow(
         original_task=intent,
     )
 
-    print("\n" + "=" * 70)
-    print(name)
-    print("=" * 70)
+    print(f"\nWorkflow: {name}")
+    print(f"Tool: {tool}")
+    print(f"User: {user_id}")
+    print(f"Decision: {decision.action}")
+    print(f"Risk: {decision.risk_score}")
+    print(f"Inspection: {decision.inspection_level}")
+    print(f"Executed: {result is not None}")
+    print(f"Reasons: {decision.reasons}")
 
-    print("TOOL:", tool)
-    print("USER:", user_id)
-    print("DECISION:", decision.action)
-    print("RISK:", decision.risk_score)
-    print("INSPECTION:", decision.inspection_level)
-    print("EXECUTED:", result is not None)
-    print("REASONS:", decision.reasons)
-
-    return decision, result
-
-
-results = []
-
-
-# L1 — own calendar
-results.append(
-    run_workflow(
-        "L1 Own Calendar",
-        "U001",
-        "get_calendar_events",
-        {
-            "user_email": "alice@company.com",
-            "date": "2026-09-23"
-        },
-        "Show my calendar events."
+    assert decision.action in {"ALLOW", "MONITOR"}, (
+        f"{name}: legitimate request was not allowed; "
+        f"decision={decision.action}, reasons={decision.reasons}"
     )
-)
 
-
-# L2 — own email
-results.append(
-    run_workflow(
-        "L2 Own Email",
-        "U001",
-        "read_email_inbox",
-        {
-            "user_email": "alice@company.com"
-        },
-        "Read my email."
+    assert result is not None, (
+        f"{name}: firewall did not return a successful tool result"
     )
-)
-
-
-# L3 — authorized customer
-results.append(
-    run_workflow(
-        "L3 Authorized Customer",
-        "U003",
-        "search_customer",
-        {
-            "customer_id": "C001"
-        },
-        "Find information about my customer."
-    )
-)
-
-
-# L4 — authorized documents
-results.append(
-    run_workflow(
-        "L4 Enterprise Documents",
-        "U001",
-        "search_documents",
-        {
-            "keyword": "Engineering"
-        },
-        "Search engineering documents."
-    )
-)
-
-
-# L5 — authorized CRM update
-results.append(
-    run_workflow(
-        "L5 Authorized CRM Update",
-        "U003",
-        "update_crm_record",
-        {
-            "customer_id": "C001",
-            "field": "status",
-            "value": "active"
-        },
-        "Update my customer's status."
-    )
-)
-
-
-# L6 — own employee search
-results.append(
-    run_workflow(
-        "L6 Own Employee Record",
-        "U001",
-        "search_employee",
-        {
-            "employee_id": "U001"
-        },
-        "Retrieve my employee record."
-    )
-)
-
-
-successes = 0
-
-for decision, result in results:
-
-    if decision.action in {
-        "ALLOW",
-        "MONITOR"
-    } and result is not None:
-
-        successes += 1
-
-
-print("\n" + "=" * 70)
-print("LEGITIMATE WORKFLOW SUMMARY")
-print("=" * 70)
-
-print("Total workflows:", len(results))
-print("Successful workflows:", successes)
-
-success_rate = (
-    successes / len(results)
-) * 100
-
-print(
-    "Legitimate success rate:",
-    round(success_rate, 2),
-    "%"
-)
-
-assert successes == len(results)
-
-print("\nLEGITIMATE WORKFLOW EVALUATION PASSED")

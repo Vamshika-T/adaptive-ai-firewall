@@ -33,19 +33,27 @@ class FakeAuditor:
         )
 
 
+
 def make_decision(
     action="ALLOW",
     risk_score=10,
     level="CONTEXTUAL",
+    audit_required=False,
 ):
+    checks = ["Initial security checks"]
+
+    if audit_required:
+        checks.append("Model-based semantic audit required")
+
     return SimpleNamespace(
         request_id="integration-test-001",
         action=action,
         risk_score=risk_score,
         inspection_level=level,
         reasons=["Initial firewall decision."],
-        checks=["Initial security checks"],
+        checks=checks,
     )
+
 
 
 def make_request():
@@ -77,7 +85,10 @@ def make_firewall(decision, auditor):
 def test_auditor_block_prevents_tool_execution():
     auditor = FakeAuditor("BLOCK", 95)
     firewall = make_firewall(
-        make_decision(action="ALLOW"),
+        make_decision(
+            action="ALLOW",
+            audit_required=True,
+        ),
         auditor,
     )
 
@@ -98,7 +109,10 @@ def test_auditor_block_prevents_tool_execution():
 def test_auditor_escalate_prevents_tool_execution():
     auditor = FakeAuditor("ESCALATE", 60)
     firewall = make_firewall(
-        make_decision(action="ALLOW"),
+        make_decision(
+            action="ALLOW",
+            audit_required=True,
+        ),
         auditor,
     )
 
@@ -178,6 +192,7 @@ def test_contextual_request_invokes_model_auditor():
             action="ALLOW",
             risk_score=10,
             level="CONTEXTUAL",
+            audit_required=True,
         ),
         auditor,
     )

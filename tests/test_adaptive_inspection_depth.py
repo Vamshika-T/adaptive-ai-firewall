@@ -1,3 +1,4 @@
+
 """Regression tests proving adaptive routes skip expensive checks on FAST."""
 from datetime import datetime
 from unittest.mock import patch
@@ -31,16 +32,24 @@ def make_request(name, *, context_sources=None, tainted=False):
         session_id=f"adaptive-depth-session-{name}",
         user_id="U001",
         tool="get_calendar_events",
-        arguments={"user_email": "alice@company.com", "date": "2026-10-18"},
+        arguments={
+            "user_email": "alice@company.com",
+            "date": "2026-10-18",
+        },
         context_sources=context_sources or [],
         tainted=tainted,
         timestamp=datetime.now(),
     )
 
 
-def main():
+def test_adaptive_inspection_depth():
     fake_auditor = FakeSemanticAuditor()
-    with patch.object(interceptor_module, "SemanticAuditor", return_value=fake_auditor):
+
+    with patch.object(
+        interceptor_module,
+        "SemanticAuditor",
+        return_value=fake_auditor,
+    ):
         firewall = FirewallInterceptor()
 
     real_intent = interceptor_module.analyze_intent
@@ -49,14 +58,32 @@ def main():
 
     cases = [
         ("FAST", make_request("fast")),
-        ("CONTEXTUAL", make_request("contextual", context_sources=["document:DOC001"])),
+        (
+            "CONTEXTUAL",
+            make_request(
+                "contextual",
+                context_sources=["document:DOC001"],
+            ),
+        ),
         ("DEEP", make_request("deep", tainted=True)),
     ]
 
     with (
-        patch.object(interceptor_module, "analyze_intent", wraps=real_intent) as intent_mock,
-        patch.object(interceptor_module, "analyze_trajectory", wraps=real_trajectory) as trajectory_mock,
-        patch.object(interceptor_module, "analyze_semantic_risk", wraps=real_semantic) as semantic_mock,
+        patch.object(
+            interceptor_module,
+            "analyze_intent",
+            wraps=real_intent,
+        ) as intent_mock,
+        patch.object(
+            interceptor_module,
+            "analyze_trajectory",
+            wraps=real_trajectory,
+        ) as trajectory_mock,
+        patch.object(
+            interceptor_module,
+            "analyze_semantic_risk",
+            wraps=real_semantic,
+        ) as semantic_mock,
     ):
         for expected, request in cases:
             before = (
@@ -65,10 +92,12 @@ def main():
                 semantic_mock.call_count,
                 len(fake_auditor.calls),
             )
+
             decision, _ = firewall.execute(
                 request,
                 original_task="Show my calendar events.",
             )
+
             after = (
                 intent_mock.call_count,
                 trajectory_mock.call_count,
@@ -77,32 +106,64 @@ def main():
             )
 
             assert decision.inspection_level == expected, (
-                f"{request.request_id}: expected {expected}, got {decision.inspection_level}"
+                f"{request.request_id}: expected {expected}, "
+                f"got {decision.inspection_level}"
             )
-            delta = tuple(a - b for a, b in zip(after, before))
+
+            delta = tuple(
+                current - previous
+                for current, previous in zip(after, before)
+            )
 
             if expected == "FAST":
-                assert delta == (0, 0, 0, 0), f"FAST ran expensive checks: {delta}"
+                assert delta == (0, 0, 0, 0), (
+                    f"FAST ran expensive checks: {delta}"
+                )
                 assert "Intent consistency" not in decision.checks
                 assert "Action trajectory analysis" not in decision.checks
                 assert "Semantic/STI inspection" not in decision.checks
+
             else:
-                assert delta[:3] == (1, 1, 1), f"{expected} check counts were {delta}"
+                assert delta[:3] == (1, 1, 1), (
+                    f"{expected} check counts were {delta}"
+                )
                 assert "Intent consistency" in decision.checks
                 assert "Action trajectory analysis" in decision.checks
                 assert "Semantic/STI inspection" in decision.checks
-                # Model auditing is required only for requests that remain
-                # eligible for execution. A request already set to MONITOR,
-                # ESCALATE, or BLOCK must not incur another model call.
-                expected_audit_calls = int(decision.action == "ALLOW")
-                assert delta[3] == expected_audit_calls, (
-                    f"{expected} audit count should be {expected_audit_calls} "
-                    f"for action {decision.action}; got {delta}"
+
+                # DEEP always requires model auditing. CONTEXTUAL requires
+                # it only when the interceptor identifies a reason to audit.
+                expected_audit_calls = int(
+                    expected == "DEEP"
+                    or "Model-based semantic audit required"
+                    in decision.checks
                 )
 
+                assert delta[3] == expected_audit_calls, (
+                    f"{expected} audit count should be "
+                    f"{expected_audit_calls}; "
+                    f"action={decision.action}, "
+                    f"checks={decision.checks}, "
+                    f"observed delta={delta}"
+                )
+
+    assert fake_auditor.calls.count("DEEP") >= 1, (
+        "The DEEP request should invoke the model auditor."
+    )
+
     print("ADAPTIVE INSPECTION DEPTH TEST PASSED")
-    print("FAST skips intent, trajectory, semantic/STI, and model audit checks.")
-    print("CONTEXTUAL and DEEP execute contextual checks and audit once.")
+    print(
+        "FAST skips intent, trajectory, semantic/STI, "
+        "and model audit checks."
+    )
+    print(
+        "CONTEXTUAL and DEEP execute contextual checks; "
+        "model auditing follows the inspection policy."
+    )
+
+
+def main():
+    test_adaptive_inspection_depth()
 
 
 if __name__ == "__main__":

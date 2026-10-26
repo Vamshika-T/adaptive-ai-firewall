@@ -1,0 +1,5 @@
+method,attack_prevention_rate,dangerous_execution_rate,gdos_prevention_rate,gdos_request_rejection_rate,gdos_request_execution_rate,legitimate_success_rate,false_positive_rate,avg_scenario_latency_ms,median_scenario_latency_ms,executed_requests,total_requests,deep_inspection_rate
+No Defense,0.0,80.0,0.0,0.0,100.0,100.0,0.0,2.8088,0.5042,77,77,0.0
+RBAC/ABAC Only,40.0,40.0,0.0,0.0,100.0,100.0,0.0,4.4617,1.0785,73,77,0.0
+AgentVisor-style STI,30.0,50.0,0.0,0.0,100.0,100.0,0.0,1.4206,0.4521,74,77,0.0
+Adaptive AI Firewall,90.0,0.0,50.0,19.35,80.65,100.0,0.0,441.2714,2.6334,57,77,22.08
