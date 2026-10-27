@@ -1,3 +1,5 @@
+import time
+
 from firewall.semantic_auditor import SemanticAuditor, SemanticAuditResult
 from models.schemas import ToolRequest, ActionRecord
 from firewall.information_flow import InformationFlowTracker
@@ -40,7 +42,8 @@ class FirewallInterceptor:
         self.enable_information_flow = enable_information_flow
 
         self.semantic_auditor = (
-            semantic_auditor if semantic_auditor is not None
+            semantic_auditor
+            if semantic_auditor is not None
             else SemanticAuditor()
         )
         self.session_history = {}
@@ -72,6 +75,9 @@ class FirewallInterceptor:
                 "DEEP": 0,
             },
             "semantic_auditor_calls": 0,
+            "semantic_auditor_failures": 0,
+            "semantic_auditor_latency_ms_total": 0.0,
+            "semantic_auditor_latency_ms_last": 0.0,
         }
 
     # TRUSTED ORIGINAL TASK
@@ -554,12 +560,21 @@ class FirewallInterceptor:
         return decision
 
     def get_routing_metrics(self):
-        """Return a snapshot of adaptive-routing counters."""
+        """Return a snapshot of routing, audit, and audit-latency metrics."""
         return {
             "preliminary": dict(self.routing_metrics["preliminary"]),
             "final": dict(self.routing_metrics["final"]),
             "semantic_auditor_calls": self.routing_metrics[
                 "semantic_auditor_calls"
+            ],
+            "semantic_auditor_failures": self.routing_metrics[
+                "semantic_auditor_failures"
+            ],
+            "semantic_auditor_latency_ms_total": self.routing_metrics[
+                "semantic_auditor_latency_ms_total"
+            ],
+            "semantic_auditor_latency_ms_last": self.routing_metrics[
+                "semantic_auditor_latency_ms_last"
             ],
         }
 
@@ -650,6 +665,7 @@ class FirewallInterceptor:
 
         if audit_required and self.enable_semantic_auditor:
             self.routing_metrics["semantic_auditor_calls"] += 1
+            audit_started = time.perf_counter()
 
             try:
                 raw_audit_result = self.semantic_auditor.audit(
@@ -674,6 +690,7 @@ class FirewallInterceptor:
                     )
 
             except Exception as error:
+                self.routing_metrics["semantic_auditor_failures"] += 1
                 decision.action = "ESCALATE"
                 decision.risk_score = 100
                 decision.checks.append(
@@ -693,6 +710,45 @@ class FirewallInterceptor:
                 )
                 return decision, None
 
+            finally:
+                audit_duration_ms = (
+                    time.perf_counter() - audit_started
+                ) * 1000
+
+                self.routing_metrics[
+                    "semantic_auditor_latency_ms_last"
+                ] = audit_duration_ms
+
+                self.routing_metrics[
+                    "semantic_auditor_latency_ms_total"
+                ] += audit_duration_ms
+
+            # A structured failure response must fail closed regardless
+            # of its recommendation or reported risk score.
+            if (
+                "Semantic audit could not safely complete"
+                in audit_result.reasons
+            ):
+                self.routing_metrics["semantic_auditor_failures"] += 1
+                decision.action = "ESCALATE"
+                decision.risk_score = 100
+                decision.checks.append(
+                    "Model-based semantic security audit (FAIL-CLOSED)"
+                )
+                decision.reasons.extend(audit_result.reasons)
+                decision.reasons.append(
+                    "Request was not executed because the auditor "
+                    "reported that it could not safely complete"
+                )
+                self.add_history(
+                    request,
+                    get_resource(request.tool, request.arguments),
+                    decision,
+                    request.tainted,
+                    self.provenance_tracker.is_trusted(request.session_id),
+                )
+                return decision, None
+
             decision.checks.append("Model-based semantic security audit")
             decision.reasons.extend(audit_result.reasons)
             decision.risk_score = max(
@@ -700,20 +756,59 @@ class FirewallInterceptor:
                 audit_result.risk_score,
             )
 
+            # Enforce semantic assessment fields independently of the
+            # auditor's recommendation.
+            if not audit_result.arguments_integrity:
+                decision.action = "BLOCK"
+                decision.risk_score = max(decision.risk_score, 85)
+                decision.reasons.append(
+                    "Blocked because the semantic auditor found "
+                    "the proposed arguments inconsistent or unsafe"
+                )
+
+            elif (
+                not audit_result.task_aligned
+                or not audit_result.action_appropriate
+            ):
+                if decision.action != "BLOCK":
+                    decision.action = "ESCALATE"
+                decision.risk_score = max(decision.risk_score, 60)
+                decision.reasons.append(
+                    "Escalated because the semantic auditor found "
+                    "a task-alignment or action-suitability concern"
+                )
+
+            if audit_result.suspicious and decision.action != "BLOCK":
+                decision.action = "ESCALATE"
+                decision.risk_score = max(decision.risk_score, 60)
+                decision.reasons.append(
+                    "Escalated because the semantic auditor marked "
+                    "the proposed action as suspicious"
+                )
+
+            # Apply the recommendation without weakening existing controls.
             if audit_result.recommendation == "BLOCK":
                 decision.action = "BLOCK"
                 decision.risk_score = max(decision.risk_score, 85)
+
+            elif audit_result.risk_score >= 70:
+                decision.action = "BLOCK"
+                decision.risk_score = max(decision.risk_score, 70)
+
             elif audit_result.recommendation == "ESCALATE":
-                decision.action = "ESCALATE"
+                if decision.action != "BLOCK":
+                    decision.action = "ESCALATE"
                 decision.risk_score = max(decision.risk_score, 60)
+
             elif audit_result.recommendation == "MONITOR":
                 if decision.action == "ALLOW":
                     decision.action = "MONITOR"
                 decision.risk_score = max(decision.risk_score, 30)
-            elif audit_result.risk_score >= 70:
-                decision.action = "BLOCK"
+
             elif audit_result.risk_score >= 45:
-                decision.action = "ESCALATE"
+                if decision.action != "BLOCK":
+                    decision.action = "ESCALATE"
+
             elif audit_result.risk_score >= 25:
                 if decision.action == "ALLOW":
                     decision.action = "MONITOR"
@@ -725,12 +820,13 @@ class FirewallInterceptor:
                 request.tainted,
                 self.provenance_tracker.is_trusted(request.session_id),
             )
+
         elif audit_required:
             decision.reasons.append(
                 "Model-based semantic audit skipped by evaluation ablation"
             )
 
-        # Enforce outbound information-flow policy.
+        # Enforce outbound email content policy.
         if (
             self.enable_information_flow
             and decision.action == "ALLOW"
@@ -759,6 +855,7 @@ class FirewallInterceptor:
                     request.tainted,
                     self.provenance_tracker.is_trusted(request.session_id),
                 )
+
         elif (
             not self.enable_information_flow
             and decision.action == "ALLOW"
@@ -768,6 +865,55 @@ class FirewallInterceptor:
                 "Outbound information-flow enforcement disabled "
                 "by evaluation ablation"
             )
+
+        # Enforce destination-specific sensitivity limits for writes.
+        # This is separate from outbound email content inspection.
+        if (
+            self.enable_information_flow
+            and decision.action == "ALLOW"
+        ):
+            write_flow_result = (
+                self.information_flow.check_sensitive_write(
+                    session_id=request.session_id,
+                    tool=request.tool,
+                    arguments=request.arguments,
+                    parent_artifact_ids=request.parent_artifact_ids,
+                )
+            )
+
+            # The tracker returns this exact reason for non-write actions.
+            # Only record a policy check when the action is a write.
+            if (
+                write_flow_result["reason"]
+                != "Action is not classified as a write operation"
+            ):
+                decision.checks.append(
+                    "Destination-specific write information-flow policy"
+                )
+                decision.reasons.append(write_flow_result["reason"])
+
+                if not write_flow_result["allowed"]:
+                    decision.action = "BLOCK"
+                    decision.risk_score = max(
+                        decision.risk_score,
+                        100,
+                    )
+                    decision.reasons.append(
+                        "Write blocked by destination-specific "
+                        "information-flow enforcement"
+                    )
+                    self.add_history(
+                        request,
+                        get_resource(
+                            request.tool,
+                            request.arguments,
+                        ),
+                        decision,
+                        request.tainted,
+                        self.provenance_tracker.is_trusted(
+                            request.session_id
+                        ),
+                    )
 
         # MONITOR is not permission to execute.
         if decision.action in {"BLOCK", "ESCALATE", "MONITOR"}:

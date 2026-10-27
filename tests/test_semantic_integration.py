@@ -23,13 +23,13 @@ class FakeAuditor:
         self.calls.append(inspection_level)
 
         return SemanticAuditResult(
-            task_aligned=self.recommendation == "ALLOW",
-            action_appropriate=self.recommendation == "ALLOW",
-            arguments_integrity=self.recommendation == "ALLOW",
+            task_aligned=True,
+            action_appropriate=True,
+            arguments_integrity=True,
             recommendation=self.recommendation,
             risk_score=self.risk_score,
             reasons=["Fake auditor used in integration test."],
-            suspicious=self.recommendation in {"BLOCK", "ESCALATE"},
+            suspicious=False,
         )
 
 

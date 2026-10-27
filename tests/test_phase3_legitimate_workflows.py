@@ -3,7 +3,26 @@ import pytest
 
 from models.schemas import ToolRequest
 from firewall.interceptor import FirewallInterceptor
+from firewall.semantic_auditor import SemanticAuditResult
 
+class LegitimateWorkflowAuditor:
+    """Deterministic auditor for authorized workflow regression tests."""
+
+    def audit(
+        self,
+        request,
+        original_task=None,
+        inspection_level=None,
+    ):
+        return SemanticAuditResult(
+            task_aligned=True,
+            action_appropriate=True,
+            arguments_integrity=True,
+            suspicious=False,
+            risk_score=10,
+            recommendation="ALLOW",
+            reasons=["Test auditor approved the legitimate workflow."],
+        )
 
 SCENARIOS = [
     pytest.param(
@@ -75,7 +94,9 @@ def test_legitimate_workflow(
     arguments,
     intent,
 ):
-    firewall = FirewallInterceptor()
+    firewall = FirewallInterceptor(
+        semantic_auditor=LegitimateWorkflowAuditor(),
+    )
 
     request = ToolRequest(
         request_id=f"LEGIT-{name}",

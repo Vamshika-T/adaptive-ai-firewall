@@ -140,6 +140,7 @@ def record_request(
     reasons=None,
     is_prelude=False,
     semantic_audit_attempts=0,
+    semantic_audit_failures=0,
     checks_performed=None,
 ):
     """Create a request-level record."""
@@ -199,6 +200,7 @@ def record_request(
         "tool": request.tool,
         "is_prelude": is_prelude,
         "semantic_audit_attempts": semantic_audit_attempts,
+        "semantic_audit_failures": semantic_audit_failures,
         "deep_inspection_performed": deep_inspection_performed,
         "contextual_or_deep_stage_check_performed": (
             contextual_or_deep_stage_check_performed
@@ -624,6 +626,9 @@ def run_adaptive(
         audit_calls_before = metrics_before.get(
             "semantic_auditor_calls", 0
         )
+        audit_failures_before = metrics_before.get(
+            "semantic_auditor_failures", 0
+        )
 
         start = time.perf_counter()
 
@@ -638,8 +643,12 @@ def run_adaptive(
         audit_calls_after = metrics_after.get(
             "semantic_auditor_calls", 0
         )
+        audit_failures_after = metrics_after.get(
+            "semantic_auditor_failures", 0
+        )
 
         audit_attempts = audit_calls_after - audit_calls_before
+        audit_failures = audit_failures_after - audit_failures_before
 
         # SecurityDecision exposes the recorded checks in its "checks"
         # field. These entries are used to measure actual check execution.
@@ -661,6 +670,7 @@ def run_adaptive(
             decision.reasons,
             is_prelude=is_prelude,
             semantic_audit_attempts=audit_attempts,
+            semantic_audit_failures=audit_failures,
             checks_performed=checks_performed,
         ))
 
@@ -786,6 +796,11 @@ def aggregate_scenario(records):
         for record in records
     )
 
+    semantic_audit_failures = sum(
+        record.get("semantic_audit_failures", 0)
+        for record in records
+    )
+
     inspection_rank = {
         "NONE": 0,
         "FAST": 1,
@@ -841,6 +856,7 @@ def aggregate_scenario(records):
             contextual_or_deep_stage_check_count
         ),
         "semantic_audit_attempts": semantic_audit_attempts,
+        "semantic_audit_failures": semantic_audit_failures,
         "reasons": first["reasons"],
     }
 
@@ -940,6 +956,16 @@ def method_metrics(records):
         for record in records
     )
 
+    semantic_audit_failures = sum(
+        record.get("semantic_audit_failures", 0)
+        for record in records
+    )
+
+    semantic_audit_failure_rate = (
+        100 * semantic_audit_failures / semantic_audit_attempts
+        if semantic_audit_attempts else 0.0
+    )
+
     return {
         "method": records[0]["method"],
         "attack_scenarios": len(attacks),
@@ -1019,6 +1045,10 @@ def method_metrics(records):
         ) if total_requests else 0.0,
 
         "semantic_audit_attempts": semantic_audit_attempts,
+        "semantic_audit_failures": semantic_audit_failures,
+        "semantic_audit_failure_rate": round(
+            semantic_audit_failure_rate, 2
+        ),
     }
 
 
@@ -1044,6 +1074,8 @@ def print_results(scenario_records, metrics):
         f"{'DEEP RATE%':<12}"
         f"{'CHECK RATE%':<13}"
         f"{'AUDIT ATT.':<12}"
+        f"{'AUDIT FAIL':<12}"
+        f"{'FAIL RATE%':<12}"
     )
 
     print("-" * 190)
@@ -1063,6 +1095,8 @@ def print_results(scenario_records, metrics):
             f"{item['deep_inspection_rate']:<12}"
             f"{item['contextual_or_deep_stage_check_rate']:<13}"
             f"{item['semantic_audit_attempts']:<12}"
+            f"{item['semantic_audit_failures']:<12}"
+            f"{item['semantic_audit_failure_rate']:<12}"
         )
 
     print("\n" + "=" * 140)
@@ -1080,6 +1114,7 @@ def print_results(scenario_records, metrics):
         f"{'DEEP COUNT':<12}"
         f"{'CHECK COUNT':<13}"
         f"{'AUDIT ATT.':<12}"
+        f"{'AUDIT FAIL':<12}"
     )
 
     print("-" * 145)
@@ -1096,6 +1131,7 @@ def print_results(scenario_records, metrics):
             f"{record['deep_inspection_count']:<12}"
             f"{record['contextual_or_deep_stage_check_count']:<13}"
             f"{record['semantic_audit_attempts']:<12}"
+            f"{record.get('semantic_audit_failures', 0):<12}"
         )
 
 
@@ -1130,6 +1166,7 @@ def save_csv(records, filename):
         "deep_inspection_count",
         "contextual_or_deep_stage_check_count",
         "semantic_audit_attempts",
+        "semantic_audit_failures",
         "reasons",
     ]
 

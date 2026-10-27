@@ -69,18 +69,22 @@ def run_case(auditor_result=None, auditor_error=None):
             request,
             original_task="Send the approved report to the recipient.",
         )
-    return decision, result, execute
+    return decision, result, execute, firewall
 
 
 def test_auditor_exception_fails_closed():
-    decision, result, execute = run_case(auditor_error=TimeoutError("timeout"))
+    decision, result, execute, firewall = run_case(
+        auditor_error=TimeoutError("timeout")
+    )
     assert decision.action == "ESCALATE"
     assert result is None
     execute.assert_not_called()
 
 
 def test_missing_fields_fail_closed():
-    decision, result, execute = run_case(auditor_result={"recommendation": "ALLOW"})
+    decision, result, execute, firewall = run_case(
+        auditor_result={"recommendation": "ALLOW"}
+    )
     assert decision.action == "ESCALATE"
     assert result is None
     execute.assert_not_called()
@@ -90,7 +94,9 @@ def test_out_of_range_model_construct_result_fails_closed():
     # Deliberately bypass Pydantic validation to exercise the interceptor's
     # independent validation boundary.
     invalid = SemanticAuditResult.model_construct(**valid_result(risk_score=101.0))
-    decision, result, execute = run_case(auditor_result=invalid)
+    decision, result, execute, firewall = run_case(
+        auditor_result=invalid
+    )
     assert decision.action == "ESCALATE"
     assert result is None
     execute.assert_not_called()
@@ -100,19 +106,74 @@ def test_invalid_recommendation_fails_closed():
     invalid = SemanticAuditResult.model_construct(
         **valid_result(recommendation="APPROVE")
     )
-    decision, result, execute = run_case(auditor_result=invalid)
+    decision, result, execute, firewall = run_case(
+        auditor_result=invalid
+    )
     assert decision.action == "ESCALATE"
     assert result is None
     execute.assert_not_called()
 
 
 def test_valid_allow_response_keeps_normal_path():
-    decision, result, execute = run_case(
+    decision, result, execute, firewall = run_case(
         auditor_result=SemanticAuditResult.model_validate(valid_result())
     )
     assert decision.action == "ALLOW"
     assert result == {"sent": True}
     execute.assert_called_once()
+
+
+def test_semantic_audit_failure_telemetry():
+    # Exceptions and malformed results must count as audit failures.
+    for kwargs in (
+        {"auditor_error": TimeoutError("timeout")},
+        {"auditor_result": {"recommendation": "ALLOW"}},
+    ):
+        decision, result, execute, firewall = run_case(**kwargs)
+        assert decision.action == "ESCALATE"
+        assert result is None
+        execute.assert_not_called()
+        assert firewall.get_routing_metrics()["semantic_auditor_failures"] == 1
+
+    # A normal audit escalation is a policy outcome, not an audit failure.
+    decision, result, execute, firewall = run_case(
+        auditor_result=SemanticAuditResult.model_validate(
+            valid_result(
+                recommendation="ESCALATE",
+                risk_score=60,
+                reasons=["Requires human review"],
+            )
+        )
+    )
+    assert decision.action == "ESCALATE"
+    assert result is None
+    execute.assert_not_called()
+    assert firewall.get_routing_metrics()["semantic_auditor_failures"] == 0
+
+def test_structured_auditor_unavailable_result_counts_as_failure():
+    unavailable = SemanticAuditResult.model_validate(
+        {
+            **valid_result(
+                task_aligned=False,
+                action_appropriate=False,
+                arguments_integrity=False,
+                suspicious=True,
+                risk_score=100,
+                recommendation="ESCALATE",
+            ),
+            "reasons": [
+                "Semantic audit could not safely complete",
+                "Auditor unavailable",
+            ],
+        }
+    )
+    decision, result, execute, firewall = run_case(
+        auditor_result=unavailable
+    )
+    assert decision.action == "ESCALATE"
+    assert result is None
+    execute.assert_not_called()
+    assert firewall.get_routing_metrics()["semantic_auditor_failures"] == 1
 
 
 if __name__ == "__main__":
@@ -122,6 +183,8 @@ if __name__ == "__main__":
         test_out_of_range_model_construct_result_fails_closed,
         test_invalid_recommendation_fails_closed,
         test_valid_allow_response_keeps_normal_path,
+        test_semantic_audit_failure_telemetry,
+        test_structured_auditor_unavailable_result_counts_as_failure,
     ):
         test()
         print(f"PASS: {test.__name__}")
