@@ -102,6 +102,50 @@ def test_interceptor_does_not_execute_restricted_crm_write():
     assert result is None
     execute_tool.assert_not_called()
 
+def test_unknown_parent_blocks_before_execution_when_flow_policy_disabled():
+    from firewall.interceptor import FirewallInterceptor
+    from models.schemas import ToolRequest
+
+    firewall = FirewallInterceptor(enable_information_flow=False)
+    firewall.semantic_auditor = AllowAuditor()
+
+    session_id = "FLOW-INVALID-PARENT"
+    original_task = "Update the customer's CRM note."
+    firewall.begin_trusted_task(session_id, original_task)
+
+    request = ToolRequest(
+        request_id="FLOW-INVALID-PARENT-REQ",
+        session_id=session_id,
+        user_id="U001",
+        tool="update_crm_record",
+        arguments={
+            "customer_id": "C005",
+            "field": "notes",
+            "value": "routine follow-up",
+        },
+        parent_artifact_ids=["UNKNOWN-SESSION:artifact:99"],
+        intent="Update CRM note",
+    )
+
+    with patch(
+        "firewall.interceptor.check_rbac",
+        return_value=(True, "authorized"),
+    ), patch(
+        "firewall.interceptor.check_abac",
+        return_value=(True, "authorized"),
+    ), patch("firewall.interceptor.execute_tool") as execute_tool:
+        decision, result = firewall.execute(
+            request,
+            original_task=original_task,
+        )
+    assert decision.action == "BLOCK"
+    assert result is None
+    assert any(
+        "unknown parent" in reason.casefold()
+        or "parent artifact" in reason.casefold()
+        for reason in decision.reasons
+    )
+    execute_tool.assert_not_called()
 
 def test_unrelated_crm_write_remains_allowed_by_flow_policy():
     tracker = InformationFlowTracker()

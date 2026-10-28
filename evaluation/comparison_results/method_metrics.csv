@@ -1,5 +1,8 @@
 method,attack_scenarios,legitimate_scenarios,gdos_scenarios,attack_prevention_rate,dangerous_execution_rate,gdos_prevention_rate,gdos_request_rejection_rate,gdos_request_execution_rate,legitimate_success_rate,false_positive_rate,avg_scenario_latency_ms,median_scenario_latency_ms,p95_scenario_latency_ms,avg_request_latency_ms,median_request_latency_ms,p95_request_latency_ms,executed_requests,total_requests,deep_inspection_count,deep_inspection_rate,contextual_or_deep_stage_check_count,contextual_or_deep_stage_check_rate,semantic_audit_attempts,semantic_audit_failures,semantic_audit_failure_rate,semantic_audit_latency_ms_total,avg_semantic_audit_latency_ms_per_attempt
-No Defense,10,6,2,0.0,80.0,0.0,0.0,100.0,100.0,0.0,5.9699,1.8658,21.5097,1.2405,0.8362,3.1875,77,77,0,0.0,0,0.0,0,0,0.0,0.0,0.0
-RBAC/ABAC Only,10,6,2,40.0,40.0,0.0,0.0,100.0,100.0,0.0,13.9564,3.5655,62.2369,2.9,2.4466,5.8514,73,77,0,0.0,0,0.0,0,0,0.0,0.0,0.0
-AgentVisor-style STI,10,6,2,30.0,50.0,0.0,0.0,100.0,100.0,0.0,5.9935,1.1406,30.9899,1.2454,0.8774,3.3084,74,77,0,0.0,0,0.0,0,0,0.0,0.0,0.0
-Adaptive AI Firewall,10,6,2,90.0,0.0,50.0,19.35,80.65,100.0,0.0,385.2842,2.4193,1670.1158,80.0591,1.6598,245.7467,57,77,16,20.78,18,23.38,4,0,0.0,6022.9026,1505.7256
+No Defense,10,6,2,0.0,80.0,0.0,0.0,100.0,100.0,0.0,2.9723,1.0339,17.0561,0.6176,0.3387,1.5662,77,77,0,0.0,0,0.0,0,0,0.0,0.0,0.0
+RBAC/ABAC Only,10,6,2,40.0,40.0,0.0,0.0,100.0,100.0,0.0,5.2141,1.5393,21.9104,1.0835,0.9749,1.7856,73,77,0,0.0,0,0.0,0,0,0.0,0.0,0.0
+AgentVisor-style STI,10,6,2,30.0,50.0,0.0,0.0,100.0,100.0,0.0,1.6768,0.456,7.8426,0.3484,0.3022,0.6353,74,77,0,0.0,0,0.0,0,0,0.0,0.0,0.0
+Adaptive AI Firewall,10,6,2,90.0,0.0,50.0,19.35,80.65,100.0,0.0,2891.4832,1.9784,17228.2835,600.8277,1.2741,289.0465,57,77,16,20.78,18,23.38,4,0,0.0,46151.3955,11537.8489
+Ablation - No Auditor,10,6,2,90.0,0.0,50.0,19.35,80.65,100.0,0.0,5.2334,1.6324,20.6076,1.0875,0.9747,1.7021,57,77,16,20.78,18,23.38,0,0,0.0,0.0,0.0
+Ablation - No Adaptive Routing,10,6,2,90.0,0.0,50.0,83.87,16.13,16.67,83.33,71277.4501,41.5857,350658.2843,14810.8987,3.7109,17354.1072,12,77,31,40.26,31,40.26,17,5,29.41,1139916.795,67053.9291
+Ablation - No Information Flow,10,6,2,90.0,0.0,50.0,19.35,80.65,50.0,50.0,30.5409,12.4125,91.7247,6.3462,2.9344,33.8964,53,77,16,20.78,18,23.38,4,4,100.0,111.6443,27.9111

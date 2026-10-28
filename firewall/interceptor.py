@@ -620,7 +620,7 @@ class FirewallInterceptor:
 
         # Validate artifact lineage unless the information-flow ablation
         # explicitly disables enforcement.
-        if self.enable_information_flow and request.parent_artifact_ids:
+        if request.parent_artifact_ids:
             existing_artifacts = self.information_flow.get_artifacts(
                 request.session_id
             )
