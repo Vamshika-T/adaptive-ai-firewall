@@ -1,3 +1,4 @@
+
 """
 Controlled comparative evaluation.
 
@@ -18,6 +19,9 @@ original AgentVisor implementation.
 
 Semantic auditor invocation counts represent attempts recorded by
 the interceptor, not necessarily successful Gemini API calls.
+
+Auditor latency measures time spent inside semantic auditor calls,
+including response validation, as reported by the interceptor.
 
 Deep inspection metrics distinguish between:
     - Deep inspection: selected level is DEEP and a tracked
@@ -141,16 +145,15 @@ def record_request(
     is_prelude=False,
     semantic_audit_attempts=0,
     semantic_audit_failures=0,
+    semantic_audit_latency_ms=0.0,
     checks_performed=None,
 ):
     """Create a request-level record."""
-
     reasons = reasons or []
 
     if checks_performed is None:
         checks_performed = []
 
-    # Normalize to a new list so caller-owned data is not modified.
     checks_performed = list(checks_performed)
 
     record = base_record(
@@ -185,8 +188,6 @@ def record_request(
         has_deep_stage_check(checks_performed)
     )
 
-    # A selected DEEP level alone is insufficient. At least one tracked
-    # deep-stage check must also be recorded as having executed.
     deep_inspection_performed = (
         inspection_name == "DEEP"
         and contextual_or_deep_stage_check_performed
@@ -201,6 +202,9 @@ def record_request(
         "is_prelude": is_prelude,
         "semantic_audit_attempts": semantic_audit_attempts,
         "semantic_audit_failures": semantic_audit_failures,
+        "semantic_audit_latency_ms": round(
+            float(semantic_audit_latency_ms), 4
+        ),
         "deep_inspection_performed": deep_inspection_performed,
         "contextual_or_deep_stage_check_performed": (
             contextual_or_deep_stage_check_performed
@@ -590,7 +594,6 @@ def run_adaptive(
     records = []
     request_number = 1
 
-    # The task is taken from trusted evaluation fixture metadata.
     trusted_task = (
         scenario.get("original_task")
         or scenario.get("task")
@@ -623,11 +626,15 @@ def run_adaptive(
         )
 
         metrics_before = firewall.get_routing_metrics()
+
         audit_calls_before = metrics_before.get(
             "semantic_auditor_calls", 0
         )
         audit_failures_before = metrics_before.get(
             "semantic_auditor_failures", 0
+        )
+        audit_latency_before = metrics_before.get(
+            "semantic_auditor_latency_ms_total", 0.0
         )
 
         start = time.perf_counter()
@@ -640,18 +647,29 @@ def run_adaptive(
         latency_ms = (time.perf_counter() - start) * 1000
 
         metrics_after = firewall.get_routing_metrics()
+
         audit_calls_after = metrics_after.get(
             "semantic_auditor_calls", 0
         )
         audit_failures_after = metrics_after.get(
             "semantic_auditor_failures", 0
         )
+        audit_latency_after = metrics_after.get(
+            "semantic_auditor_latency_ms_total", 0.0
+        )
 
-        audit_attempts = audit_calls_after - audit_calls_before
-        audit_failures = audit_failures_after - audit_failures_before
+        audit_attempts = (
+            audit_calls_after - audit_calls_before
+        )
+        audit_failures = (
+            audit_failures_after - audit_failures_before
+        )
+        audit_latency_ms = max(
+            0.0,
+            float(audit_latency_after)
+            - float(audit_latency_before),
+        )
 
-        # SecurityDecision exposes the recorded checks in its "checks"
-        # field. These entries are used to measure actual check execution.
         checks_performed = getattr(
             decision,
             "checks",
@@ -671,6 +689,7 @@ def run_adaptive(
             is_prelude=is_prelude,
             semantic_audit_attempts=audit_attempts,
             semantic_audit_failures=audit_failures,
+            semantic_audit_latency_ms=audit_latency_ms,
             checks_performed=checks_performed,
         ))
 
@@ -801,6 +820,22 @@ def aggregate_scenario(records):
         for record in records
     )
 
+    semantic_audit_latency_ms_total = sum(
+        float(record.get("semantic_audit_latency_ms", 0.0))
+        for record in records
+    )
+
+    semantic_audit_latencies_ms = [
+        float(record.get("semantic_audit_latency_ms", 0.0))
+        for record in records
+    ]
+
+    aggregated_reasons = list(dict.fromkeys(
+        str(reason)
+        for record in records
+        for reason in record.get("reasons", [])
+    ))
+
     inspection_rank = {
         "NONE": 0,
         "FAST": 1,
@@ -857,7 +892,11 @@ def aggregate_scenario(records):
         ),
         "semantic_audit_attempts": semantic_audit_attempts,
         "semantic_audit_failures": semantic_audit_failures,
-        "reasons": first["reasons"],
+        "semantic_audit_latency_ms_total": round(
+            semantic_audit_latency_ms_total, 4
+        ),
+        "semantic_audit_latencies_ms": semantic_audit_latencies_ms,
+        "reasons": aggregated_reasons,
     }
 
 
@@ -961,6 +1000,11 @@ def method_metrics(records):
         for record in records
     )
 
+    semantic_audit_latency_ms_total = sum(
+        float(record.get("semantic_audit_latency_ms_total", 0.0))
+        for record in records
+    )
+
     semantic_audit_failure_rate = (
         100 * semantic_audit_failures / semantic_audit_attempts
         if semantic_audit_attempts else 0.0
@@ -1049,6 +1093,13 @@ def method_metrics(records):
         "semantic_audit_failure_rate": round(
             semantic_audit_failure_rate, 2
         ),
+
+        "semantic_audit_latency_ms_total": round(
+            semantic_audit_latency_ms_total, 4
+        ),
+        "avg_semantic_audit_latency_ms_per_attempt": round(
+            semantic_audit_latency_ms_total / semantic_audit_attempts, 4
+        ) if semantic_audit_attempts else 0.0,
     }
 
 
@@ -1167,6 +1218,8 @@ def save_csv(records, filename):
         "contextual_or_deep_stage_check_count",
         "semantic_audit_attempts",
         "semantic_audit_failures",
+        "semantic_audit_latency_ms_total",
+        "semantic_audit_latencies_ms",
         "reasons",
     ]
 
@@ -1180,7 +1233,11 @@ def save_csv(records, filename):
             for field in fields:
                 value = record.get(field, "")
 
-                if field in {"request_latencies_ms", "reasons"}:
+                if field in {
+                    "request_latencies_ms",
+                    "semantic_audit_latencies_ms",
+                    "reasons",
+                }:
                     value = json.dumps(value)
 
                 row[field] = value
