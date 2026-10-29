@@ -51,6 +51,24 @@ def requires_deep_trajectory_inspection(history, request):
     if getattr(request, "tool", "") not in WRITE_TOOLS:
         return False
     latest_actions = _latest_actions(history)
+        # External transmission after successful document retrieval
+    # requires deep inspection, even for INTERNAL-classified documents.
+    if (
+        getattr(request, "tool", "") == "send_email_message"
+        and _is_external_email(
+            request.arguments.get("recipient", "")
+        )
+        and any(
+            action.get("decision") == "ALLOW"
+            and action.get("tool") in {
+                "search_documents",
+                "read_document",
+            }
+            for action in latest_actions
+        )
+    ):
+        return True
+    
     for action in latest_actions:
         decision = str(action.get("decision", "")).upper()
         resource = str(action.get("resource", "")).casefold()
@@ -129,23 +147,75 @@ def analyze_trajectory(history, request, resource, tainted):
         action for action in prior_actions
         if action.get("tool") in READ_TOOLS
     ]
+    prior_document_reads = [
+        action for action in prior_actions
+        if action.get("tool") in {
+            "search_documents",
+            "read_document",
+        }
+    ]
+
+    # Do not automatically trust an outbound email just because
+    # retrieved documents are classified as INTERNAL.
+    if (
+        current_tool == "send_email_message"
+        and _is_external_email(
+            request.arguments.get("recipient", "")
+        )
+        and prior_document_reads
+    ):
+        outbound_text = " ".join(
+            str(request.arguments.get(field, ""))
+            for field in ("subject", "body")
+        ).casefold()
+        outbound_text += " " + str(
+            getattr(request, "intent", "") or ""
+        ).casefold()
+
+        document_transfer_signals = (
+            "document",
+            "retrieved",
+            "material",
+            "forward",
+            "transmit",
+            "information obtained",
+            "information found",
+            "enterprise material",
+        )
+
+        if any(
+            signal in outbound_text
+            for signal in document_transfer_signals
+        ):
+            score += 70
+            critical = True
+            reasons.append(
+                "External email attempts to transmit material "
+                "following document retrieval"
+            )
+    
 
     # A sensitive read followed by a write is a general cross-tool risk,
     # independent of the exact read/write tool pair.
+    
     if current_is_write and prior_sensitive_reads:
         score += 35
         reasons.append(
             "A write action follows prior access to sensitive enterprise data"
         )
 
-        if current_tool == "send_email_message":
-            recipient = request.arguments.get("recipient", "")
-            if _is_external_email(recipient):
-                score += 35
-                critical = True
-                reasons.append(
-                    "Sensitive-data access is followed by an external email destination"
-                )
+    # External transmission after sensitive access must be blocked,
+    # even when the email body does not reproduce the source data verbatim.
+    if current_tool == "send_email_message" and _is_external_email(
+        request.arguments.get("recipient", "")
+    ):
+        if prior_sensitive_reads:
+            score += 35
+            critical = True
+            reasons.append(
+                "Sensitive-data access is followed by an external email destination"
+            )
+
 
     # Several sensitive reads within one workflow can create cumulative
     # exposure even if no single request appears exceptional.
