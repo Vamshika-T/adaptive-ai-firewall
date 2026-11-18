@@ -285,6 +285,11 @@ def run_security_scenarios():
                 request_number
             )
 
+            if scenario["id"] == "L5":
+                print("\nL5 DIAGNOSTICS")
+                print("Record:", record)
+                print("Auditor metrics:", firewall.get_routing_metrics())
+
             execution_results.append(
                 record
             )
