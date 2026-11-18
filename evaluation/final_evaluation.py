@@ -459,32 +459,25 @@ def run_legitimate_scenarios():
 
         firewall = FirewallInterceptor()
 
-        session_id = (
-            f"LEG-{scenario['id']}"
+        session_id = f"LEG-{scenario['id']}"
+
+        firewall.begin_trusted_task(
+            session_id,
+            scenario["intent"]
         )
 
         record = evaluate_request(
-
             firewall,
-
             scenario,
-
             session_id,
-
             1
         )
 
-        record[
-            "scenario_prevented"
-        ] = False
+        record["scenario_prevented"] = False
 
-        record[
-            "type"
-        ] = "legitimate"
+        record["type"] = "legitimate"
 
-        records.append(
-            record
-        )
+        records.append(record)
 
     return records
 

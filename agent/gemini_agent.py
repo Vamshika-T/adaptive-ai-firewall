@@ -5,8 +5,7 @@ from google.genai import types, errors
 
 from models.schemas import ToolRequest
 from firewall.authorization import get_user
-from dotenv import load_dotenv
-load_dotenv()
+
 
 
 class GeminiAgent:
