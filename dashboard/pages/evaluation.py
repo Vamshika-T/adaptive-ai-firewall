@@ -20,7 +20,7 @@ st.caption(
 )
 
 st.warning(
-    "The Frozen Phase 3 Evaluation and Four-Way Controlled "
+    "The Firewall Evaluation and Four-Way Controlled "
     "Comparison are separate experiments. Their results "
     "should not be combined."
 )
@@ -41,7 +41,7 @@ def optional_number(row, key, converter=float):
 
 # EXISTING PHASE 3 EVALUATION
 
-st.header("Frozen Phase 3 Evaluation")
+st.header("Firewall Evaluation")
 
 st.caption(
     "Runs A1-A10 and L1-L6 against the current firewall "
@@ -49,7 +49,7 @@ st.caption(
 )
 
 if st.button(
-    "Run Frozen Phase 3 Evaluation",
+    "Run Evaluation",
     type="primary",
     use_container_width=True,
 ):
@@ -68,7 +68,7 @@ metrics = st.session_state.get("dashboard_evaluation_metrics")
 records = st.session_state.get("dashboard_evaluation_records", [])
 
 if metrics is None:
-    st.info("Run the Frozen Phase 3 Evaluation to display its results.")
+    st.info("Run the Evaluation to display its results.")
 else:
     st.subheader("Measured Security Metrics")
 
@@ -130,6 +130,7 @@ else:
                 "Risk": record["risk_score"],
                 "Inspection": record["inspection_level"],
                 "Tool Executed": record["tool_executed"],
+                "Reasons": " | ".join(record.get("reasons", [])),
             }
         )
 

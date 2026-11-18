@@ -74,7 +74,19 @@ class SemanticAuditor:
                 return
 
             try:
-                self.client = genai.Client(api_key=api_key)
+                self.client = genai.Client(
+                    api_key=api_key,
+                    http_options=types.HttpOptions(
+                        retry_options=types.HttpRetryOptions(
+                            attempts=3,
+                            initial_delay=0.5,
+                            max_delay=2.0,
+                            exp_base=2.0,
+                            jitter=0.0,
+                            http_status_codes=[408, 429, 500, 502, 503, 504],
+                        )
+                    ),
+                )
             except Exception as error:
                 self.initialization_error = (
                     f"Could not initialize Gemini client: {error}"
