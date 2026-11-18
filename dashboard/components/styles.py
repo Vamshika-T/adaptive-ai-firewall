@@ -286,8 +286,18 @@ def apply_dashboard_styles():
             border: 1px solid #d9dde3;
         }
 
-        [data-testid="stChatMessage"] p {
+        [data-testid="stChatMessage"] p,
+        [data-testid="stChatMessage"] li,
+        [data-testid="stChatMessage"] ol,
+        [data-testid="stChatMessage"] ul,
+        [data-testid="stChatMessage"] strong,
+        [data-testid="stChatMessage"] em {
             color: #303841 !important;
+        }
+
+        [data-testid="stChatMessage"] code {
+            color: #20262e !important;
+            background: #f1f3f5 !important;
         }
 
 

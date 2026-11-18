@@ -764,25 +764,20 @@ def run_agentvisor(scenario):
 
 
 def run_adaptive_firewall(scenario):
-
     records = []
 
-    # One firewall instance per scenario.
-    #
-    # This is important because the trajectory detector,
-    # provenance tracker and session history need to see
-    # the previous requests in the same scenario.
-
+    # One firewall instance per scenario so that
+    # provenance and trajectory history are preserved.
     firewall = FirewallInterceptor()
 
-    requests = get_requests(
-        scenario
+    firewall.begin_trusted_task(
+        session_id=scenario["id"],
+        original_task=scenario["intent"],
     )
 
-    for index, request_data in enumerate(
-        requests
-    ):
+    requests = get_requests(scenario)
 
+    for index, request_data in enumerate(requests):
         request = make_request(
             scenario,
             request_data,
@@ -792,14 +787,11 @@ def run_adaptive_firewall(scenario):
         start = time.perf_counter()
 
         try:
-
-            decision = firewall.inspect(
-                request
-            )
+            # Use the actual firewall enforcement path.
+            decision, result = firewall.execute(request)
 
             inspection_latency = (
-                time.perf_counter()
-                - start
+                time.perf_counter() - start
             ) * 1000
 
             action = get_decision_value(
@@ -809,15 +801,8 @@ def run_adaptive_firewall(scenario):
             )
 
             # Enum -> string
-            action = getattr(
-                action,
-                "value",
-                action,
-            )
-
-            action = str(
-                action
-            ).upper()
+            action = getattr(action, "value", action)
+            action = str(action).upper()
 
             risk = get_decision_value(
                 decision,
@@ -835,78 +820,18 @@ def run_adaptive_firewall(scenario):
                 decision,
                 "reasons",
                 [],
-            )
+            ) or []
 
-            if reasons is None:
-                reasons = []
+            # Only ALLOW represents successful tool execution.
+            executed = action == "ALLOW"
 
-            
-            # BLOCK / ESCALATE
-            
-
-            if action in {
-                "BLOCK",
-                "ESCALATE",
-            }:
-
-                execution = {
-                    "executed": False,
-                    "result": None,
-                    "latency_ms": inspection_latency,
-                    "action": action,
-                    "error": None,
-                }
-
-            
-            # ALLOW / MONITOR
-            
-
-            else:
-
-                tool_start = (
-                    time.perf_counter()
-                )
-
-                try:
-
-                    result = execute_tool(
-                        request.tool,
-                        request.arguments,
-                    )
-
-                    tool_latency = (
-                        time.perf_counter()
-                        - tool_start
-                    ) * 1000
-
-                    execution = {
-                        "executed": True,
-                        "result": result,
-                        "latency_ms": (
-                            inspection_latency
-                            + tool_latency
-                        ),
-                        "action": action,
-                        "error": None,
-                    }
-
-                except Exception as exc:
-
-                    tool_latency = (
-                        time.perf_counter()
-                        - tool_start
-                    ) * 1000
-
-                    execution = {
-                        "executed": False,
-                        "result": None,
-                        "latency_ms": (
-                            inspection_latency
-                            + tool_latency
-                        ),
-                        "action": "EXCEPTION",
-                        "error": str(exc),
-                    }
+            execution = {
+                "executed": executed,
+                "result": result,
+                "latency_ms": inspection_latency,
+                "action": action,
+                "error": None,
+            }
 
             records.append(
                 base_record(
@@ -922,10 +847,8 @@ def run_adaptive_firewall(scenario):
             )
 
         except Exception as exc:
-
             latency = (
-                time.perf_counter()
-                - start
+                time.perf_counter() - start
             ) * 1000
 
             execution = {
